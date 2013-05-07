@@ -52,7 +52,7 @@
 %% API
 -export([start/2, list_queues/0, get_queue_acl/1, get_queue_acl/2, create_queue/1, create_queue/2,
          delete_queue/1, delete_queue/2, put_message/2, put_message/3, get_messages/1, get_messages/2,
-         peek_messages/1, peek_messages/2, delete_message/2, delete_message/3, clear_messages/1,
+         peek_messages/1, peek_messages/2, delete_message/3, delete_message/4, clear_messages/1,
          clear_messages/2, update_message/3, update_message/4]).
 
 %% gen_server callbacks
