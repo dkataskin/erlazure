@@ -237,7 +237,7 @@ handle_call({Action=delete_message, Queue, MessageId, PopReceipt, Options}, _Fro
             RequestContext = create_request_context(?queue_service,
                                                     Account,
                                                     delete,
-                                                    string:to_lower(Queue) ++ "/message/" ++ MessageId,
+                                                    string:to_lower(Queue) ++ "/messages/" ++ MessageId,
                                                     Parameters ++ parse_queue_request_options(Action, Options)),
 
             {?http_no_content, _Body} = do_service_request(ServiceContext, RequestContext),
@@ -454,6 +454,9 @@ parse_queue_request_options(Action, Options) ->
               lists:foldl(FoldFun, [], Options).
 
 create_request(RequestContext = #request_context{ method = get }, Headers) ->
+        {construct_url(RequestContext), Headers};
+
+create_request(RequestContext = #request_context{ method = delete }, Headers) ->
         {construct_url(RequestContext), Headers};
 
 create_request(RequestContext = #request_context{}, Headers) ->
