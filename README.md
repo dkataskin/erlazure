@@ -45,3 +45,7 @@ Start an instance of erlazure by calling erlazure:start/2 where **Account** is S
 ```erlang
 erlazure:start(Account, Key)
 ```
+
+##Dependencies
+* [Erlsom](https://github.com/willemdj/erlsom) - xml parser
+* [Sheriff](https://github.com/extend/sheriff) - parse transform for type checking
