@@ -23,7 +23,7 @@
 %%% ====================================================================
 
 -module(erlazure_queue).
--author("dkataskin").
+-author("Dmitriy Kataskin").
 
 -include("..\\include\\erlazure.hrl").
 
@@ -31,16 +31,10 @@
 -export([parse_queue_list/1, parse_message_list/1, get_request_body/1, get_request_options/1]).
 
 parse_queue_list(Queues) ->
-        parse_list(fun parse_queue/1, Queues).
+          erlazure_xml:parse_list(fun parse_queue/1, Queues).
 
 parse_message_list(Messages) ->
-        parse_list(fun parse_message/1, Messages).
-
-parse_list(ParseFun, List) ->
-        FoldFun = fun(Element, Acc) ->
-          [ParseFun(Element) | Acc]
-        end,
-        lists:reverse(lists:foldl(FoldFun, [], List)).
+          erlazure_xml:parse_list(fun parse_message/1, Messages).
 
 parse_message({"QueueMessage", _, Elements}) ->
           #queue_message{
@@ -54,28 +48,15 @@ parse_message({"QueueMessage", _, Elements}) ->
           }.
 
 parse_queue({"Queue", _, Elements}) ->
-        case lists:keyfind("Metadata", 1, Elements) of
-          {"Metadata", _, MetadataElements} ->
-            Metadata = parse_metadata(MetadataElements);
-          _ -> Metadata = []
-        end,
-
-        #queue{
-           name = erlazure_xml:get_element_text("Name", Elements),
-           url = erlazure_xml:get_element_text("Url", Elements),
-           metadata = Metadata
-        }.
-
-parse_metadata([]) -> [];
-parse_metadata(MetadataElements) ->
-        FoldFun = fun({Element, _, Value}, Acc) ->
-                    [{Element, lists:flatten(Value)} | Acc]
-                  end,
-        lists:foldl(FoldFun, [], MetadataElements).
+          #queue{
+             name = erlazure_xml:get_element_text("Name", Elements),
+             url = erlazure_xml:get_element_text("Url", Elements),
+             metadata = erlazure_xml:parse_metadata(Elements)
+          }.
 
 get_request_body(Message) ->
-        Data = {'QueueMessage', [], [{'MessageText', [], [base64:encode_to_string(Message)]}]},
-        lists:flatten(xmerl:export_simple([Data], xmerl_xml)).
+          Data = {'QueueMessage', [], [{'MessageText', [], [base64:encode_to_string(Message)]}]},
+          lists:flatten(xmerl:export_simple([Data], xmerl_xml)).
 
 get_request_options(list_queues) -> [prefix, marker, maxresults, include, timeout];
 get_request_options(get_queue_acl) -> [timeout];

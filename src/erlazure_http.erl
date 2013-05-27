@@ -21,10 +21,17 @@
 -author("Dmitriy Kataskin").
 
 %% API
--export([verb_to_str/1]).
+-export([verb_to_str/1, get_content_length/1]).
 
 verb_to_str(get) -> "GET";
 verb_to_str(put) -> "PUT";
 verb_to_str(post) -> "POST";
 verb_to_str(head) -> "HEAD";
 verb_to_str(delete) -> "DELETE".
+
+get_content_length(Content) when is_list(Content) ->
+                lists:flatlength(Content);
+
+get_content_length(Content) when is_binary(Content) ->
+                byte_size(Content).
+

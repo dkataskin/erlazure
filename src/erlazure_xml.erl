@@ -18,13 +18,31 @@
 %%%
 %%% Author contact: dmitriy.kataskin@gmail.com
 -module(erlazure_xml).
--author("dkataskin").
+-author("Dmitriy Kataskin").
 
 %% API
--export([get_element_text/2]).
+-export([get_element_text/2, parse_metadata/1, parse_list/2]).
 
 get_element_text(ElementName, Elements) when is_list(ElementName), is_list(Elements) ->
             case lists:keyfind(ElementName, 1, Elements) of
               {ElementName, _, Value} -> lists:flatten(Value);
               false -> ""
             end.
+
+parse_metadata([]) -> [];
+
+parse_metadata(Elements) ->
+            case lists:keyfind("Metadata", 1, Elements) of
+              {"Metadata", _, MetadataElements} ->
+                FoldFun = fun({Element, _, Value}, Acc) ->
+                  [{Element, lists:flatten(Value)} | Acc]
+                end,
+                lists:foldl(FoldFun, [], MetadataElements);
+              _ -> []
+            end.
+
+parse_list(ParseFun, List) ->
+  FoldFun = fun(Element, Acc) ->
+    [ParseFun(Element) | Acc]
+  end,
+  lists:reverse(lists:foldl(FoldFun, [], List)).
