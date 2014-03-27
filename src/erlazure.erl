@@ -1,41 +1,38 @@
-%%% Copyright (C) 2013 Dmitriy Kataskin
-%%%
-%%% This file is part of ErlAzure.
-%%%
-%%% ErlAzure is free software: you can redistribute it and/or modify
-%%% it under the terms of the GNU Lesser General Public License as
-%%% published by the Free Software Foundation, either version 3 of
-%%% the License, or (at your option) any later version.
-%%%
-%%% ErlAzure is distributed in the hope that it will be useful,
-%%% but WITHOUT ANY WARRANTY; without even the implied warranty of
-%%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-%%% GNU Lesser General Public License for more details.
-%%%
-%%% You should have received a copy of the GNU Lesser General Public
-%%% License along with ErlAzure.  If not, see
-%%% <http://www.gnu.org/licenses/>.
-%%%
-%%% Author contact: dmitriy.kataskin@gmail.com
+%% Copyright (c) 2013 - 2014, Dmitry Kataskin
+%% All rights reserved.
+%%
+%% Redistribution and use in source and binary forms, with or without
+%% modification, are permitted provided that the following conditions are met:
+%%
+%% * Redistributions of source code must retain the above copyright notice,
+%% this list of conditions and the following disclaimer.
+%% * Redistributions in binary form must reproduce the above copyright
+%% notice, this list of conditions and the following disclaimer in the
+%% documentation and/or other materials provided with the distribution.
+%% * Neither the name of  nor the names of its contributors may be used to
+%% endorse or promote products derived from this software without specific
+%% prior written permission.
+%%
+%% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+%% AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+%% IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+%% ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+%% LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+%% CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+%% SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+%% INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+%% CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+%% ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+%% POSSIBILITY OF SUCH DAMAGE.
 
-%%% ====================================================================
-%%% Azure Storage API.
-%%% ====================================================================
+%% ============================================================================
+%% Azure Storage API.
+%% ============================================================================
 
 -module(erlazure).
--author("Dmitriy Kataskin").
+-author("Dmitry Kataskin").
 
--include("..\\include\\erlazure.hrl").
-
--record(service_context, {service, api_version, account, key}).
--record(request_context, {method = get,
-                          address,
-                          path = "",
-                          parameters = [],
-                          content_type = "application/xml",
-                          content_length = 0,
-                          body = "",
-                          headers = []}).
+-include("erlazure.hrl").
 
 -behaviour(gen_server).
 
@@ -48,17 +45,22 @@
          lease_container/2, lease_container/3, list_blobs/1, list_blobs/2, put_block_blob/3,
          put_block_blob/4, put_page_blob/3, put_page_blob/4, get_blob/2, get_blob/3, snapshot_blob/2,
          snapshot_blob/3, copy_blob/3, copy_blob/4, delete_blob/2, delete_blob/3, put_block/4,
-         put_block/5, put_block_list/3, put_block_list/4, get_block_list/2, get_block_list/3]).
+         put_block/5, put_block_list/3, put_block_list/4, get_block_list/2, get_block_list/3,
+         acquire_blob_lease/3, acquire_blob_lease/4, acquire_blob_lease/5]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
+
+-record(state, {account="", key="", options=[], parameter_definitions=[]}).
 
 %%====================================================================
 %% API
 %%====================================================================
 
 start(Account, Key) ->
-            gen_server:start_link({local, ?MODULE}, ?MODULE, {Account, Key}, []).
+            gen_server:start_link({local, ?MODULE}, ?MODULE, #state{account = Account,
+                                                                    key = Key,
+                                                                    parameter_definitions = get_request_parameter_definitions()}, []).
 
 %%====================================================================
 %% Queue
@@ -184,6 +186,15 @@ get_block_list(Container, Blob) ->
 get_block_list(Container, Blob, Options) ->
             gen_server:call(?MODULE, {get_block_list, Container, Blob, Options}).
 
+acquire_blob_lease(Container, Blob, Duration) ->
+            acquire_blob_lease(Container, Blob, "", Duration, []).
+
+acquire_blob_lease(Container, Blob, Duration, Options) ->
+            acquire_blob_lease(Container, Blob, "", Duration, Options).
+
+acquire_blob_lease(Container, Blob, ProposedId, Duration, Options) ->
+            gen_server:call(?MODULE, {acquire_blob_lease, Container, Blob, ProposedId, Duration, Options}).
+
 lease_container(Name, Mode) when is_atom(Mode) ->
             lease_container(Name, Mode, []).
 lease_container(Name, Mode, Options) when is_atom(Mode) ->
@@ -193,382 +204,381 @@ lease_container(Name, Mode, Options) when is_atom(Mode) ->
 %% gen_server callbacks
 %%====================================================================
 
-init({Account, Key}) ->
+init(State) ->
             crypto:start(),
             inets:start(),
             ssl:start(),
-            {ok, {Account, Key}}.
+            {ok, State}.
 
 % List queues
-handle_call({Action=list_queues, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?queue_service, Account, Key),
-            Parameters = [{"comp", "list"}],
-
-            RequestContext = create_request_context(?queue_service, Account,
-                                                    "",
-                                                    Parameters ++ parse_request_options(?queue_service, Action, Options)),
+handle_call({list_queues, Options}, _From, State) ->
+            ServiceContext = create_service_context(?queue_service, State),
+            RequestContext = create_request_context(?queue_service,
+                                                    State,
+                                                    [{comp, list}],
+                                                    Options),
 
             {?http_ok, Body} = do_service_request(ServiceContext, RequestContext),
             {ok, {_, _, Elements}, _} = erlsom:simple_form(Body),
 
             case lists:keyfind("Queues", 1, Elements) of
               {"Queues", _, QueueListElement} ->
-                  {reply, erlazure_queue:parse_queue_list(QueueListElement), {Account, Key}};
+                  {reply, erlazure_queue:parse_queue_list(QueueListElement), State};
               false ->
-                  {reply, [], {Account, Key}}
+                  {reply, [], State}
             end;
 
 % Get queue acl
-handle_call({Action=get_queue_acl, Queue, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?queue_service, Account, Key),
-            Parameters = [{"comp", "acl"}],
-
-            RequestContext = create_request_context(?queue_service, Account,
+handle_call({get_queue_acl, Queue, Options}, _From, State) ->
+            ServiceContext = create_service_context(?queue_service, State),
+            RequestContext = create_request_context(?queue_service,
+                                                    State,
                                                     string:to_lower(Queue),
-                                                    Parameters ++ parse_request_options(?queue_service, Action, Options)),
+                                                    [{comp, acl}],
+                                                    Options),
 
             {?http_ok, Body} = do_service_request(ServiceContext, RequestContext),
-            {reply, Body, {Account, Key}};
+            {reply, Body, State};
 
 % Create queue
-handle_call({Action=create_queue, Queue, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?queue_service, Account, Key),
-
+handle_call({create_queue, Queue, Options}, _From, State) ->
+            ServiceContext = create_service_context(?queue_service, State),
             RequestContext = create_request_context(?queue_service,
-                                                    Account,
+                                                    State,
                                                     put,
                                                     string:to_lower(Queue),
-                                                    parse_request_options(?queue_service, Action, Options)),
+                                                    [],
+                                                    Options),
 
             {?http_created, _Body} = do_service_request(ServiceContext, RequestContext),
-            {reply, {ok, created}, {Account, Key}};
+            {reply, {ok, created}, State};
 
 % Delete queue
-handle_call({Action=delete_queue, Queue, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?queue_service, Account, Key),
-
+handle_call({delete_queue, Queue, Options}, _From, State) ->
+            ServiceContext = create_service_context(?queue_service, State),
             RequestContext = create_request_context(?queue_service,
-                                                    Account,
+                                                    State,
                                                     delete,
                                                     string:to_lower(Queue),
-                                                    parse_request_options(?queue_service, Action, Options)),
+                                                    [],
+                                                    Options),
 
             {?http_no_content, _Body} = do_service_request(ServiceContext, RequestContext),
-            {reply, {ok, deleted}, {Account, Key}};
+            {reply, {ok, deleted}, State};
 
 % Add message to a queue
-handle_call({Action=put_message, Queue, Message, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?queue_service, Account, Key),
-
+handle_call({put_message, Queue, Message, Options}, _From, State) ->
+            ServiceContext = create_service_context(?queue_service, State),
             RequestContext = create_request_context(?queue_service,
-                                                    Account,
+                                                    State,
                                                     post,
                                                     string:to_lower(Queue) ++ "/messages",
-                                                    parse_request_options(?queue_service, Action, Options),
-                                                    erlazure_queue:get_request_body(Message)),
+                                                    erlazure_queue:get_request_body(Message),
+                                                    [],
+                                                    Options),
 
             {?http_created, _Body} = do_service_request(ServiceContext, RequestContext),
-            {reply, {ok, created}, {Account, Key}};
+            {reply, {ok, created}, State};
 
 % Get messages from the queue
-handle_call({Action=get_messages, Queue, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?queue_service, Account, Key),
-
+handle_call({get_messages, Queue, Options}, _From, State) ->
+            ServiceContext = create_service_context(?queue_service, State),
             RequestContext = create_request_context(?queue_service,
-                                                    Account,
+                                                    State,
                                                     string:to_lower(Queue) ++ "/messages",
-                                                    parse_request_options(?queue_service, Action, Options)),
+                                                    [],
+                                                    Options),
 
             {?http_ok, Body} = do_service_request(ServiceContext, RequestContext),
             {ok, {_, _, Elements}, _} = erlsom:simple_form(Body),
-            {reply, erlazure_queue:parse_message_list(Elements), {Account, Key}};
+            {reply, erlazure_queue:parse_message_list(Elements), State};
 
 % Peek messages from the queue
-handle_call({Action=peek_messages, Queue, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?queue_service, Account, Key),
-            Parameters = [{"peekonly", "true"}],
+handle_call({peek_messages, Queue, Options}, _From, State) ->
+            ServiceContext = create_service_context(?queue_service, State),
             RequestContext = create_request_context(?queue_service,
-                                                    Account,
                                                     string:to_lower(Queue) ++ "/messages",
-                                                    Parameters ++ parse_request_options(?queue_service, Action, Options)),
+                                                    [{peek_only, true}],
+                                                    Options),
 
             {?http_ok, Body} = do_service_request(ServiceContext, RequestContext),
             {ok, {_, _, Elements}, _} = erlsom:simple_form(Body),
-            {reply, erlazure_queue:parse_message_list(Elements), {Account, Key}};
+            {reply, erlazure_queue:parse_message_list(Elements), State};
 
 % Delete message from the queue
-handle_call({Action=delete_message, Queue, MessageId, PopReceipt, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?queue_service, Account, Key),
-            Parameters = [{"popreceipt", PopReceipt}],
-
+handle_call({delete_message, Queue, MessageId, PopReceipt, Options}, _From, State) ->
+            ServiceContext = create_service_context(?queue_service, State),
             RequestContext = create_request_context(?queue_service,
-                                                    Account,
+                                                    State,
                                                     delete,
                                                     string:to_lower(Queue) ++ "/messages/" ++ MessageId,
-                                                    Parameters ++ parse_request_options(?queue_service, Action, Options)),
+                                                    [{pop_receipt, PopReceipt}],
+                                                    Options),
 
             {?http_no_content, _Body} = do_service_request(ServiceContext, RequestContext),
-            {reply, {ok, deleted}, {Account, Key}};
+            {reply, {ok, deleted}, State};
 
 % Delete all messages from the queue
-handle_call({Action=clear_messages, Queue, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?queue_service, Account, Key),
-
+handle_call({clear_messages, Queue, Options}, _From, State) ->
+            ServiceContext = create_service_context(?queue_service, State),
             RequestContext = create_request_context(?queue_service,
-                                                    Account,
+                                                    State,
                                                     delete,
                                                     string:to_lower(Queue) ++ "/messages",
-                                                    parse_request_options(?queue_service, Action, Options)),
+                                                    [],
+                                                    Options),
 
             {?http_no_content, _Body} = do_service_request(ServiceContext, RequestContext),
-            {reply, {ok, deleted}, {Account, Key}};
+            {reply, {ok, deleted}, State};
 
 % Update a message in the queue
-handle_call({Action=update_message, Queue, UpdatedMessage=#queue_message{}, VisibilityTimeout, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?queue_service, Account, Key),
+handle_call({update_message, Queue, UpdatedMessage=#queue_message{}, VisibilityTimeout, Options}, _From, State) ->
+            ServiceContext = create_service_context(?queue_service, State),
 
-            Parameters = [{"popreceipt", UpdatedMessage#queue_message.pop_receipt},
-                          {"visibilitytimeout", integer_to_list(VisibilityTimeout)}],
+            Parameters = [{pop_receipt, UpdatedMessage#queue_message.pop_receipt},
+                          {message_visibility_timeout, integer_to_list(VisibilityTimeout)}],
 
             RequestContext = create_request_context(?queue_service,
-                                                    Account,
+                                                    State,
                                                     put,
                                                     string:to_lower(Queue) ++ "/messages/" ++ UpdatedMessage#queue_message.id,
-                                                    Parameters ++ parse_request_options(?queue_service, Action, Options),
-                                                    erlazure_queue:get_request_body(UpdatedMessage#queue_message.text)),
+                                                    erlazure_queue:get_request_body(UpdatedMessage#queue_message.text),
+                                                    Parameters,
+                                                    Options),
 
             {?http_no_content, _Body} = do_service_request(ServiceContext, RequestContext),
-            {reply, {ok, updated}, {Account, Key}};
+            {reply, {ok, updated}, State};
 
 % List containers
-handle_call({Action=list_containers, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?blob_service, Account, Key),
-            Parameters = [{"comp", "list"}],
-
-            RequestContext = create_request_context(?blob_service, Account,
-                                                    "",
-                                                    Parameters ++ parse_request_options(?blob_service, Action, Options)),
+handle_call({list_containers, Options}, _From, State) ->
+            ServiceContext = create_service_context(?blob_service, State),
+            RequestContext = create_request_context(?blob_service,
+                                                    State,
+                                                    [{comp, list}],
+                                                    Options),
 
             {?http_ok, Body} = do_service_request(ServiceContext, RequestContext),
             {ok, {_, _, Elements}, _} = erlsom:simple_form(Body),
 
             case lists:keyfind("Containers", 1, Elements) of
               {"Containers", _, ContainerListElement} ->
-                {reply, erlazure_blob:parse_container_list(ContainerListElement), {Account, Key}};
+                {reply, erlazure_blob:parse_container_list(ContainerListElement), State};
               false ->
-                {reply, [], {Account, Key}}
+                {reply, [], State}
             end;
 
 % Create a container
-handle_call({Action=create_container, Name, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?blob_service, Account, Key),
-            Parameters = [{"restype", "container"}],
-
+handle_call({create_container, Name, Options}, _From, State) ->
+            ServiceContext = create_service_context(?blob_service, State),
             RequestContext = create_request_context(?blob_service,
-                                                    Account,
+                                                    State,
                                                     put,
                                                     Name,
-                                                    Parameters ++ parse_request_options(?blob_service, Action, Options)),
+                                                    [{res_type, container}],
+                                                    Options),
 
             {?http_created, _Body} = do_service_request(ServiceContext, RequestContext),
-
-            {reply, {ok, created}, {Account, Key}};
+            {reply, {ok, created}, State};
 
 % Delete container
-handle_call({Action=delete_container, Name, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?blob_service, Account, Key),
-            Parameters = [{"restype", "container"}],
-
+handle_call({delete_container, Name, Options}, _From, State) ->
+            ServiceContext = create_service_context(?blob_service, State),
             RequestContext = create_request_context(?blob_service,
-                                                    Account,
+                                                    State,
                                                     delete,
                                                     Name,
-                                                    Parameters ++ parse_request_options(?blob_service, Action, Options)),
+                                                    [{res_type, container}],
+                                                    Options),
 
             {?http_accepted, _Body} = do_service_request(ServiceContext, RequestContext),
-
-            {reply, {ok, deleted}, {Account, Key}};
+            {reply, {ok, deleted}, State};
 
 % Lease a container
-handle_call({Action=lease_container, Name, Mode, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?blob_service, Account, Key),
-            Parameters = [{"comp", "lease"}, {"restype", "container"}],
-
-            RequestContextBase = create_request_context(?blob_service,
-                                                    Account,
-                                                    put,
-                                                    Name,
-                                                    Parameters ++ parse_request_options(?blob_service, Action, Options)),
-
-            RequestContext = RequestContextBase#request_context{
-                                  headers = [{"x-ms-lease-action", atom_to_list(Mode)}]},
-
-            {?http_accepted, _Body} = do_service_request(ServiceContext, RequestContext),
-
-            {reply, {ok, deleted}, {Account, Key}};
-
-% List blobs
-handle_call({Action=list_blobs, Name, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?blob_service, Account, Key),
-            Parameters = [{"comp", "list"}, {"restype", "container"}],
+handle_call({lease_container, Name, Mode, Options}, _From, State) ->
+            ServiceContext = create_service_context(?blob_service, State),
+            Parameters = [{comp, lease},
+                          {res_type, container},
+                          {lease_action, Mode}],
 
             RequestContext = create_request_context(?blob_service,
-                                                    Account,
+                                                    State,
+                                                    put,
                                                     Name,
-                                                    Parameters ++ parse_request_options(?blob_service, Action, Options)),
+                                                    Parameters,
+                                                    Options),
+
+            {?http_accepted, _Body} = do_service_request(ServiceContext, RequestContext),
+            {reply, {ok, deleted}, State};
+
+% List blobs
+handle_call({list_blobs, Name, Options}, _From, State) ->
+            ServiceContext = create_service_context(?blob_service, State),
+            Parameters = [{comp, list},
+                          {res_type, container}],
+
+            RequestContext = create_request_context(?blob_service,
+                                                    State,
+                                                    Name,
+                                                    Parameters,
+                                                    Options),
 
             {?http_ok, Body} = do_service_request(ServiceContext, RequestContext),
             {ok, {_, _, Elements}, _} = erlsom:simple_form(Body),
 
             case lists:keyfind("Blobs", 1, Elements) of
               {"Blobs", _, BlobListElement} ->
-                {reply, erlazure_blob:parse_blob_list(BlobListElement), {Account, Key}};
+                {reply, erlazure_blob:parse_blob_list(BlobListElement), State};
               false ->
-                {reply, [], {Account, Key}}
+                {reply, [], State}
             end;
 
 % Put block blob
-handle_call({Action=put_blob, Container, Name, Type=block_blob, Data, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?blob_service, Account, Key),
-
+handle_call({put_blob, Container, Name, Type = block_blob, Data, Options}, _From, State) ->
+            ServiceContext = create_service_context(?blob_service, State),
             RequestContextBase = create_request_context(?blob_service,
-                                                        Account,
+                                                        State,
                                                         put,
                                                         Container ++ "/" ++ Name,
-                                                        parse_request_options(?blob_service, Action, Options),
                                                         Data,
-                                                        [{"x-ms-blob-type", erlazure_blob:blob_type_to_str(Type)}]),
+                                                        [{blob_type, Type}],
+                                                        Options),
 
             RequestContext = RequestContextBase#request_context{content_type = "application/octet-stream"},
 
             {?http_created, _Body} = do_service_request(ServiceContext, RequestContext),
-
-            {reply, {ok, created}, {Account, Key}};
+            {reply, {ok, created}, State};
 
 % Put page blob
-handle_call({Action=put_blob, Container, Name, Type=page_blob, ContentLength, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?blob_service, Account, Key),
+handle_call({put_blob, Container, Name, Type = page_blob, ContentLength, Options}, _From, State) ->
+            ServiceContext = create_service_context(?blob_service, State),
+
+            Parameters = [{blob_type, Type},
+                          {blob_content_length, ContentLength}],
 
             RequestContext = create_request_context(?blob_service,
-                                                    Account,
+                                                    State,
                                                     put,
                                                     Container ++ "/" ++ Name,
-                                                    parse_request_options(?blob_service, Action, Options),
-                                                    [],
-                                                    [{"x-ms-blob-type", erlazure_blob:blob_type_to_str(Type)},
-                                                     {"x-ms-blob-content-length", integer_to_list(ContentLength)}]),
+                                                    Parameters,
+                                                    Options),
 
             {?http_created, _Body} = do_service_request(ServiceContext, RequestContext),
-
-            {reply, {ok, created}, {Account, Key}};
+            {reply, {ok, created}, State};
 
 % Get blob
-handle_call({Action=get_blob, Container, Blob, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?blob_service, Account, Key),
-
+handle_call({get_blob, Container, Blob, Options}, _From, State) ->
+            ServiceContext = create_service_context(?blob_service, State),
             RequestContext = create_request_context(?blob_service,
-                                                    Account,
+                                                    State,
                                                     Container ++ "/" ++ Blob,
-                                                    parse_request_options(?blob_service, Action, Options)),
+                                                    [],
+                                                    Options),
 
             {?http_ok, Body} = do_service_request(ServiceContext, RequestContext),
-
-            {reply, {ok, Body}, {Account, Key}};
+            {reply, {ok, Body}, State};
 
 % Snapshot blob
-handle_call({Action=snapshot_blob, Container, Blob, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?blob_service, Account, Key),
-
-            Parameters = [{"comp", "snapshot"}],
-
+handle_call({snapshot_blob, Container, Blob, Options}, _From, State) ->
+            ServiceContext = create_service_context(?blob_service, State),
             RequestContext = create_request_context(?blob_service,
-                                                    Account,
+                                                    State,
                                                     put,
                                                     Container ++ "/" ++ Blob,
-                                                    Parameters ++ parse_request_options(?blob_service, Action, Options)),
+                                                    [{comp, snapshot}],
+                                                    Options),
 
             {?http_created, _Body} = do_service_request(ServiceContext, RequestContext),
-
-            {reply, {ok, created}, {Account, Key}};
+            {reply, {ok, created}, State};
 
 % Copy blob
-handle_call({Action=copy_blob, Container, Blob, Source, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?blob_service, Account, Key),
-
+handle_call({copy_blob, Container, Blob, Source, Options}, _From, State) ->
+            ServiceContext = create_service_context(?blob_service, State),
             RequestContext = create_request_context(?blob_service,
-                                                    Account,
+                                                    State,
                                                     put,
                                                     Container ++ "/" ++ Blob,
-                                                    parse_request_options(?blob_service, Action, Options),
-                                                    [],
-                                                    [{"x-ms-copy-source", Source}]),
+                                                    [{blob_copy_source, Source}],
+                                                    Options),
 
             {?http_accepted, _Body} = do_service_request(ServiceContext, RequestContext),
-
-            {reply, {ok, created}, {Account, Key}};
+            {reply, {ok, created}, State};
 
 % Delete blob
-handle_call({Action=delete_blob, Container, Blob, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?blob_service, Account, Key),
-
+handle_call({delete_blob, Container, Blob, Options}, _From, State) ->
+            ServiceContext = create_service_context(?blob_service, State),
             RequestContext = create_request_context(?blob_service,
-                                                    Account,
+                                                    State,
                                                     delete,
                                                     Container ++ "/" ++ Blob,
-                                                    parse_request_options(?blob_service, Action, Options)),
+                                                    [],
+                                                    Options),
 
             {?http_accepted, _Body} = do_service_request(ServiceContext, RequestContext),
-
-            {reply, {ok, deleted}, {Account, Key}};
+            {reply, {ok, deleted}, State};
 
 % Put block
-handle_call({Action=put_block, Container, Blob, BlockId, Content, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?blob_service, Account, Key),
+handle_call({put_block, Container, Blob, BlockId, Content, Options}, _From, State) ->
+            ServiceContext = create_service_context(?blob_service, State),
 
-            Parameters = [{"comp", "block"}, {"blockid", base64:encode_to_string(BlockId)}],
+            Parameters = [{comp, block},
+                          {blob_block_id, base64:encode_to_string(BlockId)}],
 
             RequestContext = create_request_context(?blob_service,
-                                                    Account,
+                                                    State,
                                                     put,
                                                     Container ++ "/" ++ Blob,
-                                                    Parameters ++ parse_request_options(?blob_service, Action, Options),
-                                                    Content),
+                                                    Content,
+                                                    Parameters,
+                                                    Options),
 
             {?http_created, _Body} = do_service_request(ServiceContext, RequestContext),
-
-            {reply, {ok, created}, {Account, Key}};
+            {reply, {ok, created}, State};
 
 % Put block list
-handle_call({Action=put_block_list, Container, Blob, BlockRefs, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?blob_service, Account, Key),
-
-            Parameters = [{"comp", "blocklist"}],
-
+handle_call({put_block_list, Container, Blob, BlockRefs, Options}, _From, State) ->
+            ServiceContext = create_service_context(?blob_service, State),
             RequestContext = create_request_context(?blob_service,
-                                                    Account,
+                                                    State,
                                                     put,
                                                     Container ++ "/" ++ Blob,
-                                                    Parameters ++ parse_request_options(?blob_service, Action, Options),
-                                                    erlazure_blob:get_request_body(BlockRefs)),
+                                                    erlazure_blob:get_request_body(BlockRefs),
+                                                    [{comp, "blocklist"}],
+                                                    Options),
 
             {?http_created, _Body} = do_service_request(ServiceContext, RequestContext),
-
-            {reply, {ok, created}, {Account, Key}};
+            {reply, {ok, created}, State};
 
 % Get block list
-handle_call({Action=get_block_list, Container, Blob, Options}, _From, {Account, Key}) ->
-            ServiceContext = create_service_context(?blob_service, Account, Key),
-
-            Parameters = [{"comp", "blocklist"}],
-
+handle_call({get_block_list, Container, Blob, Options}, _From, State) ->
+            ServiceContext = create_service_context(?blob_service, State),
             RequestContext = create_request_context(?blob_service,
-                                                    Account,
+                                                    State,
                                                     Container ++ "/" ++ Blob,
-                                                    Parameters ++ parse_request_options(?blob_service, Action, Options)),
+                                                    [{comp, "blocklist"}],
+                                                    Options),
 
             {?http_ok, Body} = do_service_request(ServiceContext, RequestContext),
             {ok, {"BlockList", _, Elements}, _} = erlsom:simple_form(Body),
-            {reply, erlazure_blob:parse_block_list(Elements), {Account, Key}}.
+            {reply, erlazure_blob:parse_block_list(Elements), State};
+
+% Acquire blob lease
+handle_call({acquire_blob_lease, Container, Blob, ProposedId, Duration, Options}, _From, State) ->
+            ServiceContext = create_service_context(?blob_service, State),
+
+            Parameters = [{lease_action, acquire},
+                          {proposed_lease_id, ProposedId},
+                          {lease_duration, Duration},
+                          {comp, lease}],
+
+            RequestContext = create_request_context(?blob_service,
+                                                    State,
+                                                    put,
+                                                    Container ++ "/" ++ Blob,
+                                                    Parameters,
+                                                    Options),
+
+            {?http_created, _Body} = do_service_request(ServiceContext, RequestContext),
+            {reply, {ok, acquired}, State}.
 
 handle_cast(_Msg, State) -> {noreply, State}.
 
@@ -579,7 +589,7 @@ terminate(_Reason, _State) -> ok.
 code_change(_OldVer, State, _Extra) -> {ok, State}.
 
 %%--------------------------------------------------------------------
-%%% Private functions
+%% Private functions
 %%--------------------------------------------------------------------
 
 do_service_request(ServiceContext = #service_context{}, RequestContext = #request_context{}) ->
@@ -603,7 +613,7 @@ do_service_request(ServiceContext = #service_context{}, RequestContext = #reques
             %% httpc:set_options([{ proxy, {{"localhost", 9999}, []}}]),
 
             Response = httpc:request(RequestContext#request_context.method,
-                                     create_request(RequestContext, [AuthHeader | Headers]),
+                                     erlazure_http:create_request(RequestContext, [AuthHeader | Headers]),
                                      [{version, "HTTP/1.1"}],
                                      [{sync, true}, {body_format, binary}, {headers_as_is, true}]),
             case Response of
@@ -671,7 +681,7 @@ combine_canonical_param({Param, Value}, Param, Acc, ParamList) ->
             [H | T] = ParamList,
             combine_canonical_param(H, Param, add_value(Value, Acc), T);
 
-combine_canonical_param({Param, Value}, _PreviosParam, Acc, ParamList) ->
+combine_canonical_param({Param, Value}, _PreviousParam, Acc, ParamList) ->
             [H | T] = ParamList,
             combine_canonical_param(H, Param, add_param_value(Param, Value, Acc), T).
 
@@ -700,83 +710,72 @@ get_header_names(?table_service) -> ["Content-MD5",
                                      "Content-Type",
                                      "Date"].
 
-construct_url(RequestContext = #request_context{}) ->
-            FoldFun = fun({ParamName, ParamValue}, Acc) ->
-                      if Acc =:= "" ->
-                                "?" ++ ParamName ++ "=" ++ ParamValue;
-                         true ->
-                                Acc ++"&" ++ ParamName ++ "=" ++ ParamValue
-                      end
-            end,
-            RequestContext#request_context.address ++
-            RequestContext#request_context.path ++
-            lists:foldl(FoldFun, "", RequestContext#request_context.parameters).
-
-create_service_context(?queue_service, Account, Key) ->
+create_service_context(?queue_service, State=#state{}) ->
             #service_context{service = ?queue_service,
                              api_version = ?queue_service_ver,
-                             account = Account,
-                             key = Key};
+                             account = State#state.account,
+                             key = State#state.key};
 
-create_service_context(?blob_service, Account, Key) ->
+create_service_context(?blob_service, State=#state{}) ->
             #service_context{service = ?blob_service,
                              api_version = ?blob_service_ver,
-                             account = Account,
-                             key = Key}.
+                             account = State#state.account,
+                             key = State#state.key}.
 
-create_request_context(Service, Account, Path, Parameters) ->
-            #request_context{address = build_uri_base(Service, Account),
-                             path = Path,
-                             parameters = Parameters}.
+create_request_context(Service, State=#state{}, Parameters, Options) ->
+            create_request_context(Service, State, "", Parameters, Options).
 
-create_request_context(Service, Account, Method, Path, Parameters) ->
-            #request_context{address = build_uri_base(Service, Account),
-                             path = Path,
-                             method = Method,
-                             parameters = Parameters}.
+create_request_context(Service, State=#state{}, Path, Parameters, Options) ->
+            create_request_context(Service, State, get, Path, Parameters, Options).
 
-create_request_context(Service, Account, Method, Path, Parameters, Body) ->
-            #request_context{address = build_uri_base(Service, Account),
-                             path = Path,
-                             method = Method,
-                             body = Body,
-                             content_length = erlazure_http:get_content_length(Body),
-                             parameters = Parameters}.
+create_request_context(Service, State=#state{}, Method, Path, Parameters, Options) ->
+            create_request_context(Service, State, Method, Path, [], Parameters, Options).
 
-create_request_context(Service, Account, Method, Path, Parameters, Body, Headers) ->
-            #request_context{address = build_uri_base(Service, Account),
+create_request_context(Service, State=#state{}, Method, Path, Body, Parameters, Options) ->
+            ParameterCombinedList = Parameters ++ Options,
+            RequestParameters = get_request_uri_parameters(ParameterCombinedList, State#state.parameter_definitions),
+            RequestHeaders = get_request_headers(ParameterCombinedList, State#state.parameter_definitions),
+
+            #request_context{address = build_uri_base(Service, State#state.account),
                              path = Path,
                              method = Method,
                              body = Body,
                              content_length = erlazure_http:get_content_length(Body),
-                             parameters = Parameters,
-                             headers = Headers}.
+                             parameters = RequestParameters,
+                             headers = RequestHeaders}.
 
-parse_request_options(Service, Action, Options) ->
-            KnownOptions = get_known_request_options(Service, Action),
-            FoldFun = fun({Option, Value}, Acc) when is_atom(Option) ->
-                        case lists:any(fun(OptionName) -> OptionName =:= Option end, KnownOptions) of
-                            true when is_list(Value) -> [{atom_to_list(Option), Value} | Acc];
-                            true -> [{atom_to_list(Option), lists:flatten(io_lib:format("~p", [Value]))} | Acc];
-                            false -> throw("Unknown option " ++ atom_to_list(Option))
-                        end
+get_request_headers(Parameters, ParameterDefinitions) ->
+            get_request_parameters(Parameters, ParameterDefinitions, header).
+
+get_request_uri_parameters(Parameters, ParameterDefinitions) ->
+            get_request_parameters(Parameters, ParameterDefinitions, uri).
+
+get_request_parameters(Parameters, ParameterDefinitions, Type) ->
+            ParamDefs = orddict:filter(fun(_, Value) -> Value#parameter_def.type =:= Type end, ParameterDefinitions),
+            FoldFun = fun({_ParamName, ""}, Acc) ->
+                          Acc;
+
+                          ({ParamName, ParamValue}, Acc) ->
+                            case orddict:find(ParamName, ParamDefs) of
+                              {ok, Value} -> [{Value#parameter_def.name, (Value#parameter_def.parse_fun)(ParamValue)} | Acc];
+                              error -> Acc
+                            end
                       end,
-            lists:foldl(FoldFun, [], Options).
+            lists:foldl(FoldFun, [], Parameters).
 
-get_known_request_options(?queue_service, Action) ->
-            erlazure_queue:get_request_options(Action);
+get_request_parameter_definitions() ->
+            ProcessFun = fun(ParameterDef=#parameter_def{}, Dictionary) ->
+                            orddict:store(ParameterDef#parameter_def.id, ParameterDef, Dictionary)
+                        end,
 
-get_known_request_options(?blob_service, Action) ->
-            erlazure_blob:get_request_options(Action).
+            CommonParameterDefs = lists:foldl(ProcessFun, orddict:new(), get_request_common_parameter_defs()),
+            BlobParameterDefs = lists:foldl(ProcessFun, CommonParameterDefs, erlazure_blob:get_request_parameter_definitions()),
 
-create_request(RequestContext = #request_context{ method = get }, Headers) ->
-            {construct_url(RequestContext), Headers};
+            lists:foldl(ProcessFun, BlobParameterDefs, erlazure_queue:get_request_parameter_definitions()).
 
-create_request(RequestContext = #request_context{ method = delete }, Headers) ->
-            {construct_url(RequestContext), Headers};
-
-create_request(RequestContext = #request_context{}, Headers) ->
-            {construct_url(RequestContext),
-            Headers,
-            RequestContext#request_context.content_type,
-            RequestContext#request_context.body}.
+get_request_common_parameter_defs() ->
+            [#parameter_def{ id = comp, type = uri, name = "comp" },
+             #parameter_def{ id = timeout, type = uri, name = "timeout" },
+             #parameter_def{ id = max_results, type = uri, name = "maxresults" },
+             #parameter_def{ id = prefix, type = uri, name = "prefix" },
+             #parameter_def{ id = marker, type = uri, name = "marker" }].
