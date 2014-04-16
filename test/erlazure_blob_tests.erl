@@ -29,11 +29,16 @@
 -compile(export_all).
 -author("Dmitry Kataskin").
 
--include_lib("eunit/include/eunit.hrl").
 -include("erlazure.hrl").
+
+-ifdef(EUNIT).
+-include_lib("eunit/include/eunit.hrl").
+-endif.
 
 %% API
 -export([]).
+
+-ifdef(EUNIT).
 
 passing_test() ->
 {setup,
@@ -42,6 +47,8 @@ passing_test() ->
   [?_assertEqual({ok, created}, erlazure:create_queue(append_ticks("TestQueue")))
   ]
 }.
+
+-endif.
 
 append_ticks(Name) ->
     Name ++ integer_to_list(get_ticks()).
