@@ -48,4 +48,3 @@ erlazure:start(Account, Key)
 
 ##Dependencies
 * [Erlsom](https://github.com/willemdj/erlsom) - xml parser
-* [Sheriff](https://github.com/extend/sheriff) - parse transform for type checking

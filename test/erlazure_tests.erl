@@ -23,14 +23,9 @@
 %% INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
 %% CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 %% ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-%% POSSIBILITY OF SUCH DAMAGE.
 
--module(erlazure_queue_tests).
--compile(export_all).
-
+-module(erlazure_tests).
 -author("Dmitry Kataskin").
-
--include("erlazure.hrl").
 
 -ifdef(EUNIT).
 -include_lib("eunit/include/eunit.hrl").
@@ -39,16 +34,5 @@
 %% API
 -export([]).
 
--ifdef(EUNIT).
-
-passing_test_() ->
-  {setup,
-    fun() -> erlazure:start("erltest", "52l7Z+HPjdMrDliXEm5fnfPO5UVhQsVrEnrPHS+WuZKo13eZr52Iu3Z0qL5HkqcbIIP2kax6Rw7MvSUpUmtdIA==") end,
-    [?_assertMatch({ok, created}, erlazure:create_queue(get_queue_unique_name()))
-    ]
-}.
-
--endif.
-
-get_queue_unique_name() ->
-                test_utils:append_ticks("TestQueue").
+queue_test_() ->
+  {module, erlazure_queue_tests}.

@@ -51,7 +51,11 @@
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
--record(state, {account="", key="", options=[], parameter_definitions=[]}).
+-record(state, {account="", key="", options=[], param_specs =[]}).
+
+-ifndef(PRINT).
+-define(PRINT(Var), io:format("DEBUG: ~p:~p - ~p~n~n ~p~n~n", [?MODULE, ?LINE, ??Var, Var])).
+-endif.
 
 %%====================================================================
 %% API
@@ -60,7 +64,7 @@
 start(Account, Key) ->
             gen_server:start_link({local, ?MODULE}, ?MODULE, #state{account = Account,
                                                                     key = Key,
-                                                                    parameter_definitions = get_request_param_specs()}, []).
+                                                                    param_specs = get_request_param_specs()}, []).
 
 %%====================================================================
 %% Queue
@@ -631,6 +635,8 @@ get_shared_key(Service, Account, Key, HttpMethod, Path, Parameters, Headers) ->
                               canonicalize_headers(Headers) ++
                               canonicalize_resource(Account, Path, Parameters),
 
+            %% ?PRINT(SignatureString),
+
             "SharedKey " ++ Account ++ ":" ++ base64:encode_to_string(sign_string(Key, SignatureString)).
 
 get_headers_string(Service, Headers) ->
@@ -733,8 +739,8 @@ create_request_context(Service, State=#state{}, Method, Path, Parameters, Option
 
 create_request_context(Service, State=#state{}, Method, Path, Body, Parameters, Options) ->
             ParameterCombinedList = Parameters ++ Options,
-            RequestParameters = get_request_uri_params(ParameterCombinedList, State#state.parameter_definitions),
-            RequestHeaders = get_request_headers(ParameterCombinedList, State#state.parameter_definitions),
+            RequestParameters = get_request_uri_params(ParameterCombinedList, State#state.param_specs),
+            RequestHeaders = get_request_headers(ParameterCombinedList, State#state.param_specs),
 
             #req_context{address = build_uri_base(Service, State#state.account),
                              path = Path,
@@ -764,14 +770,14 @@ get_request_params(Params, ParamSpecs, Type) ->
             lists:foldl(FoldFun, [], Params).
 
 get_request_param_specs() ->
-            ProcessFun = fun(ParameterDef=#param_spec{}, Dictionary) ->
-                            orddict:store(ParameterDef#param_spec.id, ParameterDef, Dictionary)
+            ProcessFun = fun(Spec=#param_spec{}, Dictionary) ->
+                            orddict:store(Spec#param_spec.id, Spec, Dictionary)
                         end,
 
-            CommonParameterDefs = lists:foldl(ProcessFun, orddict:new(), get_request_common_param_specs()),
-            BlobParameterDefs = lists:foldl(ProcessFun, CommonParameterDefs, erlazure_blob:get_request_param_specs()),
+            CommonParamSpecs = lists:foldl(ProcessFun, orddict:new(), get_request_common_param_specs()),
+            BlobParamSpecs = lists:foldl(ProcessFun, CommonParamSpecs, erlazure_blob:get_request_param_specs()),
 
-            lists:foldl(ProcessFun, BlobParameterDefs, erlazure_queue:get_request_param_specs()).
+            lists:foldl(ProcessFun, BlobParamSpecs, erlazure_queue:get_request_param_specs()).
 
 get_request_common_param_specs() ->
             [#param_spec{ id = comp, type = uri, name = "comp" },
