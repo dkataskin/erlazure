@@ -41,7 +41,7 @@
 
 -record(service_context, {service, api_version, account, key}).
 
--record(request_context, {method = get,
+-record(req_context, {method = get,
                           address,
                           path = "",
                           parameters = [],
@@ -50,12 +50,10 @@
                           body = "",
                           headers = []}).
 
--record(parameter_def, {id,
-                        type,
-                        name,
-                        parse_fun = fun(Value) ->
-                                      lists:flatten(io_lib:format("~p", [Value]))
-                                    end}).
+-record(param_spec, {id,
+                     type,
+                     name,
+                     parse_fun = fun(Value) -> lists:flatten(io_lib:format("~p", [Value])) end}).
 
 % Queue
 -record(queue, {name="",

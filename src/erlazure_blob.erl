@@ -36,7 +36,7 @@
 
 %% API
 -export([parse_container_list/1, parse_blob_list/1, parse_blob/1, get_request_body/1, parse_block_list/1,
-         get_request_parameter_definitions/0]).
+         get_request_param_specs/0]).
 
 parse_container_list(Containers) ->
           erlazure_xml:parse_list(fun parse_container/1, Containers).
@@ -133,15 +133,15 @@ get_request_body(BlockRefs) ->
           Data = {'BlockList', [], lists:reverse(lists:foldl(FoldFun, [], BlockRefs))},
           lists:flatten(xmerl:export_simple([Data], xmerl_xml)).
 
-get_request_parameter_definitions() ->
-          [#parameter_def{ id = block_list_type, type = uri, name = "blocklisttype" },
-           #parameter_def{ id = blob_block_id, type = uri, name = "blockid" },
-           #parameter_def{ id = res_type, type = uri, name = "restype" },
-           #parameter_def{ id = blob_copy_source, type = header, name = "x-ms-copy-source" },
-           #parameter_def{ id = blob_type, type = header, name = "x-ms-blob-type", parse_fun = fun erlazure_blob:blob_type_to_str/1 },
-           #parameter_def{ id = blob_content_length, type = header, name = "x-ms-blob-content-length" },
-           #parameter_def{ id = proposed_lease_id, type = header, name = "x-ms-proposed-lease-id" },
-           #parameter_def{ id = lease_id, type = header, name = "x-ms-lease-id" },
-           #parameter_def{ id = lease_duration, type = header, name = "x-ms-lease-duration" },
-           #parameter_def{ id = lease_break_period, type = header, name = "x-ms-break-period" },
-           #parameter_def{ id = lease_action, type = header, name = "x-ms-lease-action" }].
+get_request_param_specs() ->
+          [#param_spec{ id = block_list_type, type = uri, name = "blocklisttype" },
+           #param_spec{ id = blob_block_id, type = uri, name = "blockid" },
+           #param_spec{ id = res_type, type = uri, name = "restype" },
+           #param_spec{ id = blob_copy_source, type = header, name = "x-ms-copy-source" },
+           #param_spec{ id = blob_type, type = header, name = "x-ms-blob-type", parse_fun = fun erlazure_blob:blob_type_to_str/1 },
+           #param_spec{ id = blob_content_length, type = header, name = "x-ms-blob-content-length" },
+           #param_spec{ id = proposed_lease_id, type = header, name = "x-ms-proposed-lease-id" },
+           #param_spec{ id = lease_id, type = header, name = "x-ms-lease-id" },
+           #param_spec{ id = lease_duration, type = header, name = "x-ms-lease-duration" },
+           #param_spec{ id = lease_break_period, type = header, name = "x-ms-break-period" },
+           #param_spec{ id = lease_action, type = header, name = "x-ms-lease-action" }].

@@ -39,19 +39,19 @@ verb_to_str(post) -> "POST";
 verb_to_str(head) -> "HEAD";
 verb_to_str(delete) -> "DELETE".
 
-create_request(RequestContext = #request_context{ method = get }, Headers) ->
+create_request(RequestContext = #req_context{ method = get }, Headers) ->
                 {construct_url(RequestContext), Headers};
 
-create_request(RequestContext = #request_context{ method = delete }, Headers) ->
+create_request(RequestContext = #req_context{ method = delete }, Headers) ->
                 {construct_url(RequestContext), Headers};
 
-create_request(RequestContext = #request_context{}, Headers) ->
+create_request(RequestContext = #req_context{}, Headers) ->
                 {construct_url(RequestContext),
                  Headers,
-                 RequestContext#request_context.content_type,
-                 RequestContext#request_context.body}.
+                 RequestContext#req_context.content_type,
+                 RequestContext#req_context.body}.
 
-construct_url(RequestContext = #request_context{}) ->
+construct_url(RequestContext = #req_context{}) ->
                 FoldFun = fun({ParamName, ParamValue}, Acc) ->
                   if Acc =:= "" ->
                     "?" ++ ParamName ++ "=" ++ ParamValue;
@@ -60,9 +60,9 @@ construct_url(RequestContext = #request_context{}) ->
                   end
                 end,
 
-                RequestContext#request_context.address ++
-                RequestContext#request_context.path ++
-                lists:foldl(FoldFun, "", RequestContext#request_context.parameters).
+                RequestContext#req_context.address ++
+                RequestContext#req_context.path ++
+                lists:foldl(FoldFun, "", RequestContext#req_context.parameters).
 
 get_content_length(Content) when is_list(Content) ->
                 lists:flatlength(Content);

@@ -36,7 +36,7 @@
 -include("erlazure.hrl").
 
 %% API
--export([parse_queue_list/1, parse_message_list/1, get_request_body/1, get_request_parameter_definitions/0]).
+-export([parse_queue_list/1, parse_message_list/1, get_request_body/1, get_request_param_specs/0]).
 
 parse_queue_list(Queues) ->
           erlazure_xml:parse_list(fun parse_queue/1, Queues).
@@ -66,9 +66,9 @@ get_request_body(Message) ->
           Data = {'QueueMessage', [], [{'MessageText', [], [base64:encode_to_string(Message)]}]},
           lists:flatten(xmerl:export_simple([Data], xmerl_xml)).
 
-get_request_parameter_definitions() ->
-          [#parameter_def{ id = num_of_messages, type = uri, name = "numofmessages" },
-           #parameter_def{ id = pop_receipt, type = uri, name = "popreceipt" },
-           #parameter_def{ id = peek_only, type = uri, name = "peekonly" },
-           #parameter_def{ id = message_ttl, type = uri, name = "messagettl" },
-           #parameter_def{ id = message_visibility_timeout, type = uri, name = "visibilitytimeout" }].
+get_request_param_specs() ->
+          [#param_spec{ id = num_of_messages, type = uri, name = "numofmessages" },
+           #param_spec{ id = pop_receipt, type = uri, name = "popreceipt" },
+           #param_spec{ id = peek_only, type = uri, name = "peekonly" },
+           #param_spec{ id = message_ttl, type = uri, name = "messagettl" },
+           #param_spec{ id = message_visibility_timeout, type = uri, name = "visibilitytimeout" }].

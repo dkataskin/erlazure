@@ -60,7 +60,7 @@
 start(Account, Key) ->
             gen_server:start_link({local, ?MODULE}, ?MODULE, #state{account = Account,
                                                                     key = Key,
-                                                                    parameter_definitions = get_request_parameter_definitions()}, []).
+                                                                    parameter_definitions = get_request_param_specs()}, []).
 
 %%====================================================================
 %% Queue
@@ -218,7 +218,7 @@ handle_call({list_queues, Options}, _From, State) ->
                                                     [{comp, list}],
                                                     Options),
 
-            {?http_ok, Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
             {ok, {_, _, Elements}, _} = erlsom:simple_form(Body),
 
             case lists:keyfind("Queues", 1, Elements) of
@@ -237,7 +237,7 @@ handle_call({get_queue_acl, Queue, Options}, _From, State) ->
                                                     [{comp, acl}],
                                                     Options),
 
-            {?http_ok, Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
             {reply, Body, State};
 
 % Create queue
@@ -250,7 +250,7 @@ handle_call({create_queue, Queue, Options}, _From, State) ->
                                                     [],
                                                     Options),
 
-            {?http_created, _Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_created, _Body} = execute_request(ServiceContext, RequestContext),
             {reply, {ok, created}, State};
 
 % Delete queue
@@ -263,7 +263,7 @@ handle_call({delete_queue, Queue, Options}, _From, State) ->
                                                     [],
                                                     Options),
 
-            {?http_no_content, _Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_no_content, _Body} = execute_request(ServiceContext, RequestContext),
             {reply, {ok, deleted}, State};
 
 % Add message to a queue
@@ -277,7 +277,7 @@ handle_call({put_message, Queue, Message, Options}, _From, State) ->
                                                     [],
                                                     Options),
 
-            {?http_created, _Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_created, _Body} = execute_request(ServiceContext, RequestContext),
             {reply, {ok, created}, State};
 
 % Get messages from the queue
@@ -289,7 +289,7 @@ handle_call({get_messages, Queue, Options}, _From, State) ->
                                                     [],
                                                     Options),
 
-            {?http_ok, Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
             {ok, {_, _, Elements}, _} = erlsom:simple_form(Body),
             {reply, erlazure_queue:parse_message_list(Elements), State};
 
@@ -301,7 +301,7 @@ handle_call({peek_messages, Queue, Options}, _From, State) ->
                                                     [{peek_only, true}],
                                                     Options),
 
-            {?http_ok, Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
             {ok, {_, _, Elements}, _} = erlsom:simple_form(Body),
             {reply, erlazure_queue:parse_message_list(Elements), State};
 
@@ -315,7 +315,7 @@ handle_call({delete_message, Queue, MessageId, PopReceipt, Options}, _From, Stat
                                                     [{pop_receipt, PopReceipt}],
                                                     Options),
 
-            {?http_no_content, _Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_no_content, _Body} = execute_request(ServiceContext, RequestContext),
             {reply, {ok, deleted}, State};
 
 % Delete all messages from the queue
@@ -328,7 +328,7 @@ handle_call({clear_messages, Queue, Options}, _From, State) ->
                                                     [],
                                                     Options),
 
-            {?http_no_content, _Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_no_content, _Body} = execute_request(ServiceContext, RequestContext),
             {reply, {ok, deleted}, State};
 
 % Update a message in the queue
@@ -346,7 +346,7 @@ handle_call({update_message, Queue, UpdatedMessage=#queue_message{}, VisibilityT
                                                     Parameters,
                                                     Options),
 
-            {?http_no_content, _Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_no_content, _Body} = execute_request(ServiceContext, RequestContext),
             {reply, {ok, updated}, State};
 
 % List containers
@@ -357,7 +357,7 @@ handle_call({list_containers, Options}, _From, State) ->
                                                     [{comp, list}],
                                                     Options),
 
-            {?http_ok, Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
             {ok, {_, _, Elements}, _} = erlsom:simple_form(Body),
 
             case lists:keyfind("Containers", 1, Elements) of
@@ -377,7 +377,7 @@ handle_call({create_container, Name, Options}, _From, State) ->
                                                     [{res_type, container}],
                                                     Options),
 
-            {?http_created, _Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_created, _Body} = execute_request(ServiceContext, RequestContext),
             {reply, {ok, created}, State};
 
 % Delete container
@@ -390,7 +390,7 @@ handle_call({delete_container, Name, Options}, _From, State) ->
                                                     [{res_type, container}],
                                                     Options),
 
-            {?http_accepted, _Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_accepted, _Body} = execute_request(ServiceContext, RequestContext),
             {reply, {ok, deleted}, State};
 
 % Lease a container
@@ -407,7 +407,7 @@ handle_call({lease_container, Name, Mode, Options}, _From, State) ->
                                                     Parameters,
                                                     Options),
 
-            {?http_accepted, _Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_accepted, _Body} = execute_request(ServiceContext, RequestContext),
             {reply, {ok, deleted}, State};
 
 % List blobs
@@ -422,7 +422,7 @@ handle_call({list_blobs, Name, Options}, _From, State) ->
                                                     Parameters,
                                                     Options),
 
-            {?http_ok, Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
             {ok, {_, _, Elements}, _} = erlsom:simple_form(Body),
 
             case lists:keyfind("Blobs", 1, Elements) of
@@ -443,9 +443,9 @@ handle_call({put_blob, Container, Name, Type = block_blob, Data, Options}, _From
                                                         [{blob_type, Type}],
                                                         Options),
 
-            RequestContext = RequestContextBase#request_context{content_type = "application/octet-stream"},
+            RequestContext = RequestContextBase#req_context{content_type = "application/octet-stream"},
 
-            {?http_created, _Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_created, _Body} = execute_request(ServiceContext, RequestContext),
             {reply, {ok, created}, State};
 
 % Put page blob
@@ -462,7 +462,7 @@ handle_call({put_blob, Container, Name, Type = page_blob, ContentLength, Options
                                                     Parameters,
                                                     Options),
 
-            {?http_created, _Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_created, _Body} = execute_request(ServiceContext, RequestContext),
             {reply, {ok, created}, State};
 
 % Get blob
@@ -474,7 +474,7 @@ handle_call({get_blob, Container, Blob, Options}, _From, State) ->
                                                     [],
                                                     Options),
 
-            {?http_ok, Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
             {reply, {ok, Body}, State};
 
 % Snapshot blob
@@ -487,7 +487,7 @@ handle_call({snapshot_blob, Container, Blob, Options}, _From, State) ->
                                                     [{comp, snapshot}],
                                                     Options),
 
-            {?http_created, _Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_created, _Body} = execute_request(ServiceContext, RequestContext),
             {reply, {ok, created}, State};
 
 % Copy blob
@@ -500,7 +500,7 @@ handle_call({copy_blob, Container, Blob, Source, Options}, _From, State) ->
                                                     [{blob_copy_source, Source}],
                                                     Options),
 
-            {?http_accepted, _Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_accepted, _Body} = execute_request(ServiceContext, RequestContext),
             {reply, {ok, created}, State};
 
 % Delete blob
@@ -513,7 +513,7 @@ handle_call({delete_blob, Container, Blob, Options}, _From, State) ->
                                                     [],
                                                     Options),
 
-            {?http_accepted, _Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_accepted, _Body} = execute_request(ServiceContext, RequestContext),
             {reply, {ok, deleted}, State};
 
 % Put block
@@ -531,7 +531,7 @@ handle_call({put_block, Container, Blob, BlockId, Content, Options}, _From, Stat
                                                     Parameters,
                                                     Options),
 
-            {?http_created, _Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_created, _Body} = execute_request(ServiceContext, RequestContext),
             {reply, {ok, created}, State};
 
 % Put block list
@@ -545,7 +545,7 @@ handle_call({put_block_list, Container, Blob, BlockRefs, Options}, _From, State)
                                                     [{comp, "blocklist"}],
                                                     Options),
 
-            {?http_created, _Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_created, _Body} = execute_request(ServiceContext, RequestContext),
             {reply, {ok, created}, State};
 
 % Get block list
@@ -557,7 +557,7 @@ handle_call({get_block_list, Container, Blob, Options}, _From, State) ->
                                                     [{comp, "blocklist"}],
                                                     Options),
 
-            {?http_ok, Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
             {ok, {"BlockList", _, Elements}, _} = erlsom:simple_form(Body),
             {reply, erlazure_blob:parse_block_list(Elements), State};
 
@@ -577,7 +577,7 @@ handle_call({acquire_blob_lease, Container, Blob, ProposedId, Duration, Options}
                                                     Parameters,
                                                     Options),
 
-            {?http_created, _Body} = do_service_request(ServiceContext, RequestContext),
+            {?http_created, _Body} = execute_request(ServiceContext, RequestContext),
             {reply, {ok, acquired}, State}.
 
 handle_cast(_Msg, State) -> {noreply, State}.
@@ -592,27 +592,27 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 %% Private functions
 %%--------------------------------------------------------------------
 
-do_service_request(ServiceContext = #service_context{}, RequestContext = #request_context{}) ->
+execute_request(ServiceContext = #service_context{}, RequestContext = #req_context{}) ->
             Headers =  [{"x-ms-date", httpd_util:rfc1123_date()},
                         {"x-ms-version", ServiceContext#service_context.api_version},
-                        {"Content-Type", RequestContext#request_context.content_type},
-                        {"Content-Length", integer_to_list(RequestContext#request_context.content_length)},
+                        {"Content-Type", RequestContext#req_context.content_type},
+                        {"Content-Length", integer_to_list(RequestContext#req_context.content_length)},
                         {"Host", get_host(ServiceContext#service_context.service,
                                           ServiceContext#service_context.account)}]
-                        ++ RequestContext#request_context.headers,
+                        ++ RequestContext#req_context.headers,
 
             AuthHeader = {"Authorization", get_shared_key(ServiceContext#service_context.service,
                                                           ServiceContext#service_context.account,
                                                           ServiceContext#service_context.key,
-                                                          RequestContext#request_context.method,
-                                                          RequestContext#request_context.path,
-                                                          RequestContext#request_context.parameters,
+                                                          RequestContext#req_context.method,
+                                                          RequestContext#req_context.path,
+                                                          RequestContext#req_context.parameters,
                                                           Headers)},
 
             %% Fiddler
             %% httpc:set_options([{ proxy, {{"localhost", 9999}, []}}]),
 
-            Response = httpc:request(RequestContext#request_context.method,
+            Response = httpc:request(RequestContext#req_context.method,
                                      erlazure_http:create_request(RequestContext, [AuthHeader | Headers]),
                                      [{version, "HTTP/1.1"}],
                                      [{sync, true}, {body_format, binary}, {headers_as_is, true}]),
@@ -733,10 +733,10 @@ create_request_context(Service, State=#state{}, Method, Path, Parameters, Option
 
 create_request_context(Service, State=#state{}, Method, Path, Body, Parameters, Options) ->
             ParameterCombinedList = Parameters ++ Options,
-            RequestParameters = get_request_uri_parameters(ParameterCombinedList, State#state.parameter_definitions),
+            RequestParameters = get_request_uri_params(ParameterCombinedList, State#state.parameter_definitions),
             RequestHeaders = get_request_headers(ParameterCombinedList, State#state.parameter_definitions),
 
-            #request_context{address = build_uri_base(Service, State#state.account),
+            #req_context{address = build_uri_base(Service, State#state.account),
                              path = Path,
                              method = Method,
                              body = Body,
@@ -744,38 +744,38 @@ create_request_context(Service, State=#state{}, Method, Path, Body, Parameters, 
                              parameters = RequestParameters,
                              headers = RequestHeaders}.
 
-get_request_headers(Parameters, ParameterDefinitions) ->
-            get_request_parameters(Parameters, ParameterDefinitions, header).
+get_request_headers(Params, ParamSpecs) ->
+            get_request_params(Params, ParamSpecs, header).
 
-get_request_uri_parameters(Parameters, ParameterDefinitions) ->
-            get_request_parameters(Parameters, ParameterDefinitions, uri).
+get_request_uri_params(Params, ParamSpecs) ->
+            get_request_params(Params, ParamSpecs, uri).
 
-get_request_parameters(Parameters, ParameterDefinitions, Type) ->
-            ParamDefs = orddict:filter(fun(_, Value) -> Value#parameter_def.type =:= Type end, ParameterDefinitions),
+get_request_params(Params, ParamSpecs, Type) ->
+            ParamDefs = orddict:filter(fun(_, Value) -> Value#param_spec.type =:= Type end, ParamSpecs),
             FoldFun = fun({_ParamName, ""}, Acc) ->
                           Acc;
 
                           ({ParamName, ParamValue}, Acc) ->
                             case orddict:find(ParamName, ParamDefs) of
-                              {ok, Value} -> [{Value#parameter_def.name, (Value#parameter_def.parse_fun)(ParamValue)} | Acc];
+                              {ok, Value} -> [{Value#param_spec.name, (Value#param_spec.parse_fun)(ParamValue)} | Acc];
                               error -> Acc
                             end
                       end,
-            lists:foldl(FoldFun, [], Parameters).
+            lists:foldl(FoldFun, [], Params).
 
-get_request_parameter_definitions() ->
-            ProcessFun = fun(ParameterDef=#parameter_def{}, Dictionary) ->
-                            orddict:store(ParameterDef#parameter_def.id, ParameterDef, Dictionary)
+get_request_param_specs() ->
+            ProcessFun = fun(ParameterDef=#param_spec{}, Dictionary) ->
+                            orddict:store(ParameterDef#param_spec.id, ParameterDef, Dictionary)
                         end,
 
-            CommonParameterDefs = lists:foldl(ProcessFun, orddict:new(), get_request_common_parameter_defs()),
-            BlobParameterDefs = lists:foldl(ProcessFun, CommonParameterDefs, erlazure_blob:get_request_parameter_definitions()),
+            CommonParameterDefs = lists:foldl(ProcessFun, orddict:new(), get_request_common_param_specs()),
+            BlobParameterDefs = lists:foldl(ProcessFun, CommonParameterDefs, erlazure_blob:get_request_param_specs()),
 
-            lists:foldl(ProcessFun, BlobParameterDefs, erlazure_queue:get_request_parameter_definitions()).
+            lists:foldl(ProcessFun, BlobParameterDefs, erlazure_queue:get_request_param_specs()).
 
-get_request_common_parameter_defs() ->
-            [#parameter_def{ id = comp, type = uri, name = "comp" },
-             #parameter_def{ id = timeout, type = uri, name = "timeout" },
-             #parameter_def{ id = max_results, type = uri, name = "maxresults" },
-             #parameter_def{ id = prefix, type = uri, name = "prefix" },
-             #parameter_def{ id = marker, type = uri, name = "marker" }].
+get_request_common_param_specs() ->
+            [#param_spec{ id = comp, type = uri, name = "comp" },
+             #param_spec{ id = timeout, type = uri, name = "timeout" },
+             #param_spec{ id = max_results, type = uri, name = "maxresults" },
+             #param_spec{ id = prefix, type = uri, name = "prefix" },
+             #param_spec{ id = marker, type = uri, name = "marker" }].
