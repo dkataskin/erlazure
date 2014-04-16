@@ -31,24 +31,18 @@
 -author("Dmitry Kataskin").
 
 -include("erlazure.hrl").
-
--ifdef(EUNIT).
 -include_lib("eunit/include/eunit.hrl").
--endif.
 
 %% API
 -export([]).
 
--ifdef(EUNIT).
-
-passing_test_() ->
+named_test_() ->
   {setup,
-    fun() -> erlazure:start("erltest", "52l7Z+HPjdMrDliXEm5fnfPO5UVhQsVrEnrPHS+WuZKo13eZr52Iu3Z0qL5HkqcbIIP2kax6Rw7MvSUpUmtdIA==") end,
+    fun() -> erlazure:start("<account>", "<key>") end,
+    fun(_) -> ok end,
     [?_assertMatch({ok, created}, erlazure:create_queue(get_queue_unique_name()))
     ]
 }.
-
--endif.
 
 get_queue_unique_name() ->
                 test_utils:append_ticks("TestQueue").
