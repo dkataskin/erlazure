@@ -32,17 +32,57 @@
 
 -include("erlazure.hrl").
 -include_lib("eunit/include/eunit.hrl").
+-include_lib("xmerl/include/xmerl.hrl").
 
 %% API
 -export([]).
 
-named_test_() ->
-  {setup,
-    fun() -> erlazure:start("<account>", "<key>") end,
-    fun(_) -> ok end,
-    [?_assertMatch({ok, created}, erlazure:create_queue(get_queue_unique_name()))
-    ]
-}.
+%named_test_() ->
+%  {setup,
+%    fun() -> erlazure:start("<account>", "<key>") end,
+%    fun(_) -> ok end,
+%    [?_assertMatch({ok, created}, erlazure:create_queue(get_queue_unique_name()))
+%    ]
+%}.
 
 get_queue_unique_name() ->
                 test_utils:append_ticks("TestQueue").
+
+parse_list_queues_response_test() ->
+                Response = get_list_queues_sample_response(),
+                ParseResult = parse_list_queues_response(Response),
+                ?_assertMatch([], ParseResult).
+
+parse_list_queues_response(Response) when is_list(Response) ->
+                {ParseResult, _} = xmerl_scan:string(Response),
+                parse_list_queues_response(ParseResult).
+
+parse_list_queues_response([], QueueList) ->
+                QueueList;
+
+parse_list_queues_response([H|T], QueueList) ->
+                QueueList1 = parse_list_queues_response(H, QueueList),
+                parse_list_queues_response(T, QueueList1).
+
+parse_list_queues_response(Elem#xmlElement.name='EnumerationResult') ->
+                parse_list_queues_response(Elem#xmlElement.content, []).
+
+parse_list_queues_response(Elem#xmlElement.name='Prefix', QueueList) ->
+                QueueList.
+
+get_list_queues_sample_response() ->
+"<?xml version=""1.0"" encoding=""utf-8""?>
+<EnumerationResults ServiceEndpoint=""https://myaccount.queue.core.windows.net/"">
+  <Prefix>test prefix</Prefix>
+  <Marker>test marker</Marker>
+  <MaxResults>133</MaxResults>
+  <Queues>
+    <Queue>
+      <Name>test queue name 1</Name>
+      <Metadata>
+        <metadata-name>test metadata value 1</metadata-name>
+      </Metadata>
+    </Queue>
+  </Queues>
+  <NextMarker />
+</EnumerationResults>".
