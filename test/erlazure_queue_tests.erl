@@ -53,22 +53,25 @@ parse_list_queues_response_test() ->
                 ParseResult = parse_list_queues_response(Response),
                 ?_assertMatch([], ParseResult).
 
+parse_list_queues_response(Elem, Tokens) ->
+                case Elem#xmlElement.name of
+                  'Prefix' -> [{prefix, nil} | Tokens];
+                  'Marker' -> [{marker, nil} | Tokens];
+                  'MaxResults' -> [{max_results, nil} | Tokens];
+                  'Queues' -> lists:append(Tokens, lists:foldl(fun parse_list_queues_response/1, [], Elem#xmlElement.content));
+                  'Queue' -> [{queue, nil}];
+                  _ -> Tokens
+                end.
+
 parse_list_queues_response(Response) when is_list(Response) ->
                 {ParseResult, _} = xmerl_scan:string(Response),
-                parse_list_queues_response(ParseResult).
 
-parse_list_queues_response([], QueueList) ->
-                QueueList;
+                case ParseResult#xmlElement.name of
+                  'EnumerationResult' ->
+                      lists:foldl(fun parse_list_queues_response/1, [], ParseResult#xmlElement.content);
 
-parse_list_queues_response([H|T], QueueList) ->
-                QueueList1 = parse_list_queues_response(H, QueueList),
-                parse_list_queues_response(T, QueueList1).
-
-parse_list_queues_response(Elem#xmlElement.name='EnumerationResult') ->
-                parse_list_queues_response(Elem#xmlElement.content, []).
-
-parse_list_queues_response(Elem#xmlElement.name='Prefix', QueueList) ->
-                QueueList.
+                  _ -> {error, bad_response}
+                end.
 
 get_list_queues_sample_response() ->
 "<?xml version=""1.0"" encoding=""utf-8""?>
