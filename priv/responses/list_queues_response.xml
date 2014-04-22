@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <EnumerationResults ServiceEndpoint="https://myaccount.queue.core.windows.net/">
-    <Prefix>string-value</Prefix>
-    <Marker>string-value</Marker>
-    <MaxResults>int-value</MaxResults>
+    <Prefix>Test prefix value</Prefix>
+    <Marker>Test marker value</Marker>
+    <MaxResults>154</MaxResults>
     <Queues>
         <Queue>
-            <Name>string-value</Name>
+            <Name>Queue 1</Name>
             <Metadata>
-                <metadata-name>value</metadata-name>
+                <metadata-name>first metadata item</metadata-name>
             </Metadata>
         </Queue>
     </Queues>

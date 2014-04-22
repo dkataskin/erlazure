@@ -53,11 +53,8 @@ parse_list_queues_response_test() ->
                 ParseResult = parse_list_queues_response(Response),
                 ?_assertMatch([{prefix, nil}, {marker, nil}, {max_results, nil}], ParseResult).
 
-parse_list_queues_response(Elem, Tokens) ->
+parse_list_queues_response(Elem, Tokens) when is_record(Elem, xmlElement) ->
                 case Elem#xmlElement.name of
-                  'Prefix' -> [{prefix, nil} | Tokens];
-                  'Marker' -> [{marker, nil} | Tokens];
-                  'MaxResults' -> [{max_results, nil} | Tokens];
                   %'Queues' -> lists:append(Tokens, lists:foldl(fun parse_list_queues_response/1, [], Elem#xmlElement.content));
                   %'Queue' -> [{queue, nil}];
                   _ -> Tokens
@@ -65,27 +62,22 @@ parse_list_queues_response(Elem, Tokens) ->
 
 parse_list_queues_response(Response) when is_list(Response) ->
                 {ParseResult, _} = xmerl_scan:string(Response),
+                parse_enumeration_result(ParseResult, fun parse_list_queues_response/2).
 
-                case ParseResult#xmlElement.name of
+parse_enumeration_common_tokens(Elem, Tokens) when is_record(Elem, xmlElement) ->
+                case Elem#xmlElement.name of
+                  'Prefix' -> [{prefix, nil} | Tokens];
+                  'Marker' -> [{marker, nil} | Tokens];
+                  'MaxResults' -> [{max_results, nil} | Tokens];
+                  _ -> Tokens
+                end.
+
+parse_enumeration_result(Elem, ParseFun) when is_record(Elem, xmlElement) ->
+                case Elem#xmlElement.name of
                   'EnumerationResult' ->
-                      lists:foldl(fun parse_list_queues_response/1, [], ParseResult#xmlElement.content);
+                    CommonTokens = lists:foldl(fun parse_enumeration_common_tokens/2, [], Elem#xmlElement.content),
+                    Items = lists:foldl(ParseFun, [], Elem#xmlElement.content),
+                    lists:append(CommonTokens, Items);
 
                   _ -> {error, bad_response}
                 end.
-
-get_list_queues_sample_response() ->
-"<?xml version=""1.0"" encoding=""utf-8""?>
-<EnumerationResults ServiceEndpoint=""https://myaccount.queue.core.windows.net/"">
-  <Prefix>test prefix</Prefix>
-  <Marker>test marker</Marker>
-  <MaxResults>133</MaxResults>
-  <Queues>
-    <Queue>
-      <Name>test queue name 1</Name>
-      <Metadata>
-        <metadata-name>test metadata value 1</metadata-name>
-      </Metadata>
-    </Queue>
-  </Queues>
-  <NextMarker />
-</EnumerationResults>".
