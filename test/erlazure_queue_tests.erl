@@ -51,7 +51,7 @@ get_queue_unique_name() ->
 parse_list_queues_response_test() ->
                 Response = test_utils:read_file("list_queues_response.xml"),
                 ParseResult = parse_list_queues_response(Response),
-                ?_assertMatch([{prefix, nil}, {marker, nil}, {max_results, nil}], ParseResult).
+                ?assertMatch([{prefix, nil}, {marker, nil}, {max_results, nil}], ParseResult).
 
 parse_list_queues_response(Elem, Tokens) when is_record(Elem, xmlElement) ->
                 case Elem#xmlElement.name of
@@ -74,10 +74,13 @@ parse_enumeration_common_tokens(Elem, Tokens) when is_record(Elem, xmlElement) -
 
 parse_enumeration_result(Elem, ParseFun) when is_record(Elem, xmlElement) ->
                 case Elem#xmlElement.name of
-                  'EnumerationResult' ->
-                    CommonTokens = lists:foldl(fun parse_enumeration_common_tokens/2, [], Elem#xmlElement.content),
-                    Items = lists:foldl(ParseFun, [], Elem#xmlElement.content),
-                    lists:append(CommonTokens, Items);
+                  'EnumerationResults' ->
+                    Nodes = lists:filter(fun(Elem) when is_record(Elem, xmlElement) -> true;
+                                            (Elem) -> false end, Elem#xmlElement.content),
+
+                    CommonTokens = lists:foldl(fun parse_enumeration_common_tokens/2, [], Nodes),
+                    Items = lists:foldl(ParseFun, [], Nodes),
+                    lists:append(lists:reverse(CommonTokens), lists:reverse(Items));
 
                   _ -> {error, bad_response}
                 end.
