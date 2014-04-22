@@ -29,7 +29,7 @@
 -author("Dmitry Kataskin").
 
 %% API
--export([append_ticks/1, get_ticks/0]).
+-export([append_ticks/1, get_ticks/0, read_file/1]).
 
 
 append_ticks(Name) ->
@@ -37,3 +37,10 @@ append_ticks(Name) ->
 
 get_ticks() ->
   calendar:datetime_to_gregorian_seconds(calendar:local_time()).
+
+read_file(FileName) ->
+  {ok, Binary} = file:read_file(file_path(FileName)),
+  erlang:binary_to_list(Binary).
+
+file_path(File) ->
+  filename:join([code:priv_dir(erlazure), responses, File]).

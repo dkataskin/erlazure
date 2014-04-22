@@ -49,17 +49,17 @@ get_queue_unique_name() ->
                 test_utils:append_ticks("TestQueue").
 
 parse_list_queues_response_test() ->
-                Response = get_list_queues_sample_response(),
+                Response = test_utils:read_file("list_queues_response.xml"),
                 ParseResult = parse_list_queues_response(Response),
-                ?_assertMatch([], ParseResult).
+                ?_assertMatch([{prefix, nil}, {marker, nil}, {max_results, nil}], ParseResult).
 
 parse_list_queues_response(Elem, Tokens) ->
                 case Elem#xmlElement.name of
                   'Prefix' -> [{prefix, nil} | Tokens];
                   'Marker' -> [{marker, nil} | Tokens];
                   'MaxResults' -> [{max_results, nil} | Tokens];
-                  'Queues' -> lists:append(Tokens, lists:foldl(fun parse_list_queues_response/1, [], Elem#xmlElement.content));
-                  'Queue' -> [{queue, nil}];
+                  %'Queues' -> lists:append(Tokens, lists:foldl(fun parse_list_queues_response/1, [], Elem#xmlElement.content));
+                  %'Queue' -> [{queue, nil}];
                   _ -> Tokens
                 end.
 
