@@ -51,12 +51,14 @@ get_queue_unique_name() ->
 parse_list_queues_response_test() ->
                 Response = test_utils:read_file("list_queues_response.xml"),
                 ParseResult = parse_list_queues_response(Response),
-                ?assertMatch([{prefix, nil}, {marker, nil}, {max_results, nil}], ParseResult).
+                ?assertMatch([{prefix, nil}, {marker, nil}, {max_results, nil}, {queue, nil}], ParseResult).
 
 parse_list_queues_response(Elem, Tokens) when is_record(Elem, xmlElement) ->
                 case Elem#xmlElement.name of
-                  %'Queues' -> lists:append(Tokens, lists:foldl(fun parse_list_queues_response/1, [], Elem#xmlElement.content));
-                  %'Queue' -> [{queue, nil}];
+                  'Queues' ->
+                    Nodes = filter_elements(Elem#xmlElement.content),
+                    lists:append(Tokens, lists:foldl(fun parse_list_queues_response/2, [], Nodes));
+                  'Queue' -> [{queue, nil}];
                   _ -> Tokens
                 end.
 
@@ -84,3 +86,7 @@ parse_enumeration_result(Elem, ParseFun) when is_record(Elem, xmlElement) ->
 
                   _ -> {error, bad_response}
                 end.
+
+filter_elements(XmlNodes) ->
+                lists:filter(fun(Elem) when is_record(Elem, xmlElement) -> true;
+                                (_) -> false end, XmlNodes).
