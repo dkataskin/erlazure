@@ -51,17 +51,21 @@ get_queue_unique_name() ->
 parse_list_queues_response_test() ->
                 Response = test_utils:read_file("list_queues_response.xml"),
                 ParseResult = parse_list_queues_response(Response),
-                ?assertMatch([{prefix, nil}, {marker, nil}, {max_results, nil}, {queues, [{queue, nil}]}], ParseResult).
+
+                ?assertMatch({[{queue, nil}],
+                              [{prefix, "Test prefix value"},
+                               {marker, "Test marker value"},
+                               {max_results, 154}]}, ParseResult).
 
 parse_list_queues_response(Elem, PropListItems) when is_record(Elem, xmlElement) ->
                 case Elem#xmlElement.name of
                   'Queues' ->
                     Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
-                    Queues = lists:foldl(fun parse_list_queues_response/2, [], Nodes),
-                    [{queues, Queues} | PropListItems];
+                    lists:foldl(fun parse_list_queues_response/2, [], Nodes);
 
                   'Queue' ->
                     [{queue, nil} | PropListItems];
+
                   _ -> PropListItems
                 end.
 
@@ -71,9 +75,9 @@ parse_list_queues_response(Response) when is_list(Response) ->
 
 parse_enumeration_common_tokens(Elem, Tokens) when is_record(Elem, xmlElement) ->
                 case Elem#xmlElement.name of
-                  'Prefix' -> [{prefix, nil} | Tokens];
-                  'Marker' -> [{marker, nil} | Tokens];
-                  'MaxResults' -> [{max_results, nil} | Tokens];
+                  'Prefix' -> [erlazure_xml:parse_str_property(prefix, Elem) | Tokens];
+                  'Marker' -> [erlazure_xml:parse_str_property(marker, Elem) | Tokens];
+                  'MaxResults' -> [erlazure_xml:parse_int_property(max_results, Elem) | Tokens];
                   _ -> Tokens
                 end.
 
@@ -83,7 +87,7 @@ parse_enumeration_result(Elem, ParseFun) when is_record(Elem, xmlElement) ->
                     Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
                     CommonTokens = lists:foldl(fun parse_enumeration_common_tokens/2, [], Nodes),
                     Items = lists:foldl(ParseFun, [], Nodes),
-                    lists:append(lists:reverse(CommonTokens), lists:reverse(Items));
+                    {lists:reverse(Items), lists:reverse(CommonTokens)};
 
                   _ -> {error, bad_response}
                 end.

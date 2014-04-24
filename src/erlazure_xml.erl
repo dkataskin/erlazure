@@ -31,7 +31,8 @@
 -include_lib("xmerl/include/xmerl.hrl").
 
 %% API
--export([get_element_text/2, parse_metadata/1, parse_list/2, filter_elements/1]).
+-export([get_element_text/2, parse_metadata/1, parse_list/2, filter_elements/1, get_text/1, parse_str_property/2,
+         parse_int_property/2]).
 
 get_element_text(ElementName, Elements) when is_list(ElementName), is_list(Elements) ->
             case lists:keyfind(ElementName, 1, Elements) of
@@ -58,5 +59,15 @@ parse_list(ParseFun, List) ->
   lists:reverse(lists:foldl(FoldFun, [], List)).
 
 filter_elements(XmlNodes) ->
-  lists:filter(fun(Elem) when is_record(Elem, xmlElement) -> true;
-                  (_) -> false end, XmlNodes).
+            lists:filter(fun(Elem) when is_record(Elem, xmlElement) -> true;
+                            (_) -> false end, XmlNodes).
+
+get_text(XmlElement) when is_record(XmlElement, xmlElement) ->
+            [{xmlText, _, _, _, Text, _}] = XmlElement#xmlElement.content,
+            Text.
+
+parse_str_property(Property, XmlElement) when is_record(XmlElement, xmlElement) ->
+            {Property, get_text(XmlElement)}.
+
+parse_int_property(Property, XmlElement) when is_record(XmlElement, xmlElement) ->
+            {Property, erlang:list_to_integer(get_text(XmlElement))}.
