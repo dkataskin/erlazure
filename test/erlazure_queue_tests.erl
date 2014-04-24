@@ -51,15 +51,18 @@ get_queue_unique_name() ->
 parse_list_queues_response_test() ->
                 Response = test_utils:read_file("list_queues_response.xml"),
                 ParseResult = parse_list_queues_response(Response),
-                ?assertMatch([{prefix, nil}, {marker, nil}, {max_results, nil}, {queue, nil}], ParseResult).
+                ?assertMatch([{prefix, nil}, {marker, nil}, {max_results, nil}, {queues, [{queue, nil}]}], ParseResult).
 
-parse_list_queues_response(Elem, Tokens) when is_record(Elem, xmlElement) ->
+parse_list_queues_response(Elem, PropListItems) when is_record(Elem, xmlElement) ->
                 case Elem#xmlElement.name of
                   'Queues' ->
-                    Nodes = filter_elements(Elem#xmlElement.content),
-                    lists:append(Tokens, lists:foldl(fun parse_list_queues_response/2, [], Nodes));
-                  'Queue' -> [{queue, nil}];
-                  _ -> Tokens
+                    Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
+                    Queues = lists:foldl(fun parse_list_queues_response/2, [], Nodes),
+                    [{queues, Queues} | PropListItems];
+
+                  'Queue' ->
+                    [{queue, nil} | PropListItems];
+                  _ -> PropListItems
                 end.
 
 parse_list_queues_response(Response) when is_list(Response) ->
@@ -77,16 +80,10 @@ parse_enumeration_common_tokens(Elem, Tokens) when is_record(Elem, xmlElement) -
 parse_enumeration_result(Elem, ParseFun) when is_record(Elem, xmlElement) ->
                 case Elem#xmlElement.name of
                   'EnumerationResults' ->
-                    Nodes = lists:filter(fun(Elem) when is_record(Elem, xmlElement) -> true;
-                                            (Elem) -> false end, Elem#xmlElement.content),
-
+                    Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
                     CommonTokens = lists:foldl(fun parse_enumeration_common_tokens/2, [], Nodes),
                     Items = lists:foldl(ParseFun, [], Nodes),
                     lists:append(lists:reverse(CommonTokens), lists:reverse(Items));
 
                   _ -> {error, bad_response}
                 end.
-
-filter_elements(XmlNodes) ->
-                lists:filter(fun(Elem) when is_record(Elem, xmlElement) -> true;
-                                (_) -> false end, XmlNodes).

@@ -28,8 +28,10 @@
 -module(erlazure_xml).
 -author("Dmitry Kataskin").
 
+-include_lib("xmerl/include/xmerl.hrl").
+
 %% API
--export([get_element_text/2, parse_metadata/1, parse_list/2]).
+-export([get_element_text/2, parse_metadata/1, parse_list/2, filter_elements/1]).
 
 get_element_text(ElementName, Elements) when is_list(ElementName), is_list(Elements) ->
             case lists:keyfind(ElementName, 1, Elements) of
@@ -54,3 +56,7 @@ parse_list(ParseFun, List) ->
     [ParseFun(Element) | Acc]
   end,
   lists:reverse(lists:foldl(FoldFun, [], List)).
+
+filter_elements(XmlNodes) ->
+  lists:filter(fun(Elem) when is_record(Elem, xmlElement) -> true;
+                  (_) -> false end, XmlNodes).

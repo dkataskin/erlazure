@@ -39,6 +39,10 @@
 -define(queue_service_ver, "2012-02-12").
 -define(blob_service_ver, "2012-02-12").
 
+-ifndef(PRINT).
+-define(PRINT(Var), io:format("DEBUG: ~p:~p - ~p~n~n ~p~n~n", [?MODULE, ?LINE, ??Var, Var])).
+-endif.
+
 -record(service_context, {service, api_version, account, key}).
 
 -record(req_context, {method = get,
