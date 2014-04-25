@@ -55,7 +55,8 @@ parse_list_queues_response_test() ->
                 ?assertMatch({[{queue, nil}],
                               [{prefix, "Test prefix value"},
                                {marker, "Test marker value"},
-                               {max_results, 154}]}, ParseResult).
+                               {max_results, 154},
+                               {next_marker, ""}]}, ParseResult).
 
 parse_list_queues_response(Elem, PropListItems) when is_record(Elem, xmlElement) ->
                 case Elem#xmlElement.name of
@@ -78,6 +79,7 @@ parse_enumeration_common_tokens(Elem, Tokens) when is_record(Elem, xmlElement) -
                   'Prefix' -> [erlazure_xml:parse_str_property(prefix, Elem) | Tokens];
                   'Marker' -> [erlazure_xml:parse_str_property(marker, Elem) | Tokens];
                   'MaxResults' -> [erlazure_xml:parse_int_property(max_results, Elem) | Tokens];
+                  'NextMarker' -> [erlazure_xml:parse_str_property(next_marker, Elem) | Tokens];
                   _ -> Tokens
                 end.
 

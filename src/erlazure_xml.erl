@@ -28,6 +28,7 @@
 -module(erlazure_xml).
 -author("Dmitry Kataskin").
 
+-include("erlazure.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
 %% API
@@ -63,8 +64,10 @@ filter_elements(XmlNodes) ->
                             (_) -> false end, XmlNodes).
 
 get_text(XmlElement) when is_record(XmlElement, xmlElement) ->
-            [{xmlText, _, _, _, Text, _}] = XmlElement#xmlElement.content,
-            Text.
+            case XmlElement#xmlElement.content of
+              [] -> "";
+              [{xmlText, _, _, _, Text, _}] -> Text
+            end.
 
 parse_str_property(Property, XmlElement) when is_record(XmlElement, xmlElement) ->
             {Property, get_text(XmlElement)}.
