@@ -52,7 +52,7 @@ parse_list_queues_response_test() ->
                 Response = test_utils:read_file("list_queues_response.xml"),
                 ParseResult = parse_list_queues_response(Response),
 
-                ?assertMatch({[{queue, [{name, "Queue 1"}]}],
+                ?assertMatch({[{queue, {name, "Queue 1"}, "", ""}],
                               [{prefix, "Test prefix value"},
                                {marker, "Test marker value"},
                                {max_results, 154},
@@ -65,7 +65,7 @@ parse_list_queues_response(Elem, PropListItems) when is_record(Elem, xmlElement)
                     lists:foldl(fun parse_list_queues_response/2, [], Nodes);
 
                   'Queue' ->
-                    [{queue, parse_queue_response(Elem)} | PropListItems];
+                    [parse_queue_response(Elem) | PropListItems];
 
                   _ -> PropListItems
                 end.
@@ -76,12 +76,12 @@ parse_list_queues_response(Response) when is_list(Response) ->
 
 parse_queue_response(#xmlElement { content = Content}) ->
                 Nodes = erlazure_xml:filter_elements(Content),
-                lists:foldl(fun parse_queue_response/2, [], Nodes).
+                lists:foldl(fun parse_queue_response/2, #queue{}, Nodes).
 
-parse_queue_response(Elem, Tokens) when is_record(Elem, xmlElement) ->
+parse_queue_response(Elem, Queue) when is_record(Elem, xmlElement) ->
                 case Elem#xmlElement.name of
-                  'Name' -> [erlazure_xml:parse_str_property(name, Elem) | Tokens];
-                  _ -> Tokens
+                  'Name' -> Queue#queue { name = erlazure_xml:parse_str_property(name, Elem) };
+                  _ -> Queue
                 end.
 
 parse_enumeration_common_tokens(Elem, Tokens) when is_record(Elem, xmlElement) ->
