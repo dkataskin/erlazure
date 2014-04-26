@@ -65,7 +65,7 @@ parse_list_queues_response(Elem, PropListItems) when is_record(Elem, xmlElement)
                     lists:foldl(fun parse_list_queues_response/2, [], Nodes);
 
                   'Queue' ->
-                    [{queue, nil} | PropListItems];
+                    [{queue, parse_queue_response(Elem)} | PropListItems];
 
                   _ -> PropListItems
                 end.
@@ -73,6 +73,10 @@ parse_list_queues_response(Elem, PropListItems) when is_record(Elem, xmlElement)
 parse_list_queues_response(Response) when is_list(Response) ->
                 {ParseResult, _} = xmerl_scan:string(Response),
                 parse_enumeration_result(ParseResult, fun parse_list_queues_response/2).
+
+parse_queue_response(#xmlElement { content = Content}) ->
+                Nodes = erlazure_xml:filter_elements(Content),
+                nil.
 
 parse_enumeration_common_tokens(Elem, Tokens) when is_record(Elem, xmlElement) ->
                 case Elem#xmlElement.name of
