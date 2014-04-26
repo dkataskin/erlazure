@@ -52,7 +52,7 @@ parse_list_queues_response_test() ->
                 Response = test_utils:read_file("list_queues_response.xml"),
                 ParseResult = parse_list_queues_response(Response),
 
-                ?assertMatch({[{queue, {name, "Queue 1"}, "", ""}],
+                ?assertMatch({[{queue, {name, "Queue 1"}, "", [{'metadata-name',"first metadata item"}]}],
                               [{prefix, "Test prefix value"},
                                {marker, "Test marker value"},
                                {max_results, 154},
@@ -81,8 +81,16 @@ parse_queue_response(#xmlElement { content = Content}) ->
 parse_queue_response(Elem, Queue) when is_record(Elem, xmlElement) ->
                 case Elem#xmlElement.name of
                   'Name' -> Queue#queue { name = erlazure_xml:parse_str_property(name, Elem) };
+                  'Metadata' -> Queue#queue { metadata = parse_metadata_response(Elem) };
                   _ -> Queue
                 end.
+
+parse_metadata_response(Elem) when is_record(Elem, xmlElement) ->
+                Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
+                lists:foldl(fun parse_metadata_response/2, [], Nodes).
+
+parse_metadata_response(Elem, Items) when is_record(Elem, xmlElement) ->
+                [erlazure_xml:parse_str_property(Elem#xmlElement.name, Elem)|Items].
 
 parse_enumeration_common_tokens(Elem, Tokens) when is_record(Elem, xmlElement) ->
                 case Elem#xmlElement.name of
