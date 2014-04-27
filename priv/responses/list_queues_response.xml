@@ -6,6 +6,7 @@
     <Queues>
         <Queue>
             <Name>Queue 1</Name>
+            <Url>http://queue1.queue.core.windows.net</Url>
             <Metadata>
                 <metadata-name>first metadata item</metadata-name>
             </Metadata>

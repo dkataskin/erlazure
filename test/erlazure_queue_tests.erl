@@ -52,7 +52,10 @@ parse_list_queues_response_test() ->
                 Response = test_utils:read_file("list_queues_response.xml"),
                 ParseResult = parse_list_queues_response(Response),
 
-                ?assertMatch({[{queue, "Queue 1", "", [{'metadata-name',"first metadata item"}]}],
+                ?assertMatch({[#queue{
+                                  name =  "Queue 1",
+                                  url = "http://queue1.queue.core.windows.net",
+                                  metadata = [{'metadata-name',"first metadata item"}]}],
                               [{prefix, "Test prefix value"},
                                {marker, "Test marker value"},
                                {max_results, 154},
@@ -63,10 +66,7 @@ parse_list_queues_response(Elem, PropListItems) when is_record(Elem, xmlElement)
                   'Queues' ->
                     Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
                     lists:foldl(fun parse_list_queues_response/2, [], Nodes);
-
-                  'Queue' ->
-                    [parse_queue_response(Elem) | PropListItems];
-
+                  'Queue' -> [parse_queue_response(Elem) | PropListItems];
                   _ -> PropListItems
                 end.
 
@@ -81,12 +81,13 @@ parse_queue_response(#xmlElement { content = Content}) ->
 parse_queue_response(Elem, Queue) when is_record(Elem, xmlElement) ->
                 case Elem#xmlElement.name of
                   'Name' -> Queue#queue { name = erlazure_xml:parse_str(Elem) };
+                  'Url' -> Queue#queue { url = erlazure_xml:parse_str(Elem) };
                   'Metadata' -> Queue#queue { metadata = parse_metadata_response(Elem) };
                   _ -> Queue
                 end.
 
-parse_metadata_response(Elem) when is_record(Elem, xmlElement) ->
-                Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
+parse_metadata_response(#xmlElement { content = Content }) ->
+                Nodes = erlazure_xml:filter_elements(Content),
                 lists:foldl(fun parse_metadata_response/2, [], Nodes).
 
 parse_metadata_response(Elem, Items) when is_record(Elem, xmlElement) ->
