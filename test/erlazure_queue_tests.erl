@@ -52,7 +52,7 @@ parse_list_queues_response_test() ->
                 Response = test_utils:read_file("list_queues_response.xml"),
                 ParseResult = parse_list_queues_response(Response),
 
-                ?assertMatch({[{queue, {name, "Queue 1"}, "", [{'metadata-name',"first metadata item"}]}],
+                ?assertMatch({[{queue, "Queue 1", "", [{'metadata-name',"first metadata item"}]}],
                               [{prefix, "Test prefix value"},
                                {marker, "Test marker value"},
                                {max_results, 154},
@@ -80,7 +80,7 @@ parse_queue_response(#xmlElement { content = Content}) ->
 
 parse_queue_response(Elem, Queue) when is_record(Elem, xmlElement) ->
                 case Elem#xmlElement.name of
-                  'Name' -> Queue#queue { name = erlazure_xml:parse_str_property(name, Elem) };
+                  'Name' -> Queue#queue { name = erlazure_xml:parse_str(Elem) };
                   'Metadata' -> Queue#queue { metadata = parse_metadata_response(Elem) };
                   _ -> Queue
                 end.
@@ -90,14 +90,14 @@ parse_metadata_response(Elem) when is_record(Elem, xmlElement) ->
                 lists:foldl(fun parse_metadata_response/2, [], Nodes).
 
 parse_metadata_response(Elem, Items) when is_record(Elem, xmlElement) ->
-                [erlazure_xml:parse_str_property(Elem#xmlElement.name, Elem)|Items].
+                [{Elem#xmlElement.name, erlazure_xml:parse_str(Elem)} | Items].
 
 parse_enumeration_common_tokens(Elem, Tokens) when is_record(Elem, xmlElement) ->
                 case Elem#xmlElement.name of
-                  'Prefix' -> [erlazure_xml:parse_str_property(prefix, Elem) | Tokens];
-                  'Marker' -> [erlazure_xml:parse_str_property(marker, Elem) | Tokens];
-                  'MaxResults' -> [erlazure_xml:parse_int_property(max_results, Elem) | Tokens];
-                  'NextMarker' -> [erlazure_xml:parse_str_property(next_marker, Elem) | Tokens];
+                  'Prefix' -> [{prefix, erlazure_xml:parse_str(Elem)} | Tokens];
+                  'Marker' -> [{marker, erlazure_xml:parse_str(Elem)} | Tokens];
+                  'MaxResults' -> [{max_results, erlazure_xml:parse_int(Elem)} | Tokens];
+                  'NextMarker' -> [{next_marker, erlazure_xml:parse_str(Elem)} | Tokens];
                   _ -> Tokens
                 end.
 
