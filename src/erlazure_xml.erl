@@ -32,8 +32,8 @@
 -include_lib("xmerl/include/xmerl.hrl").
 
 %% API
--export([get_element_text/2, parse_metadata/1, parse_list/2, filter_elements/1, get_text/1, parse_str/1,
-         parse_int/1]).
+-export([get_element_text/2, parse_metadata/1, parse_list/2, parse_enumeration/2, filter_elements/1, get_text/1,
+         parse_str/1, parse_int/1]).
 
 get_element_text(ElementName, Elements) when is_list(ElementName), is_list(Elements) ->
             case lists:keyfind(ElementName, 1, Elements) of
@@ -41,23 +41,52 @@ get_element_text(ElementName, Elements) when is_list(ElementName), is_list(Eleme
               false -> ""
             end.
 
-parse_metadata([]) -> [];
+%parse_metadata([]) -> [];
 
-parse_metadata(Elements) ->
-            case lists:keyfind("Metadata", 1, Elements) of
-              {"Metadata", _, MetadataElements} ->
-                FoldFun = fun({Element, _, Value}, Acc) ->
-                  [{Element, lists:flatten(Value)} | Acc]
-                end,
-                lists:foldl(FoldFun, [], MetadataElements);
-              _ -> []
-            end.
+%parse_metadata(Elements) ->
+%            case lists:keyfind("Metadata", 1, Elements) of
+%              {"Metadata", _, MetadataElements} ->
+%                FoldFun = fun({Element, _, Value}, Acc) ->
+%                  [{Element, lists:flatten(Value)} | Acc]
+%                end,
+%                lists:foldl(FoldFun, [], MetadataElements);
+%              _ -> []
+%            end.
 
 parse_list(ParseFun, List) ->
-  FoldFun = fun(Element, Acc) ->
-    [ParseFun(Element) | Acc]
-  end,
-  lists:reverse(lists:foldl(FoldFun, [], List)).
+            FoldFun = fun(Element, Acc) ->
+              [ParseFun(Element) | Acc]
+            end,
+            lists:reverse(lists:foldl(FoldFun, [], List)).
+
+
+%% xmerl
+parse_metadata(#xmlElement { content = Content }) ->
+            Nodes = erlazure_xml:filter_elements(Content),
+            lists:foldl(fun parse_metadata/2, [], Nodes).
+
+parse_metadata(Elem, Items) when is_record(Elem, xmlElement) ->
+            [{Elem#xmlElement.name, erlazure_xml:parse_str(Elem)} | Items].
+
+parse_common_tokens(Elem, Tokens) when is_record(Elem, xmlElement) ->
+            case Elem#xmlElement.name of
+              'Prefix' -> [{prefix, erlazure_xml:parse_str(Elem)} | Tokens];
+              'Marker' -> [{marker, erlazure_xml:parse_str(Elem)} | Tokens];
+              'MaxResults' -> [{max_results, erlazure_xml:parse_int(Elem)} | Tokens];
+              'NextMarker' -> [{next_marker, erlazure_xml:parse_str(Elem)} | Tokens];
+              _ -> Tokens
+            end.
+
+parse_enumeration(Elem, ParseFun) when is_record(Elem, xmlElement) ->
+            case Elem#xmlElement.name of
+              'EnumerationResults' ->
+                Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
+                CommonTokens = lists:foldl(fun parse_common_tokens/2, [], Nodes),
+                Items = lists:foldl(ParseFun, [], Nodes),
+                {lists:reverse(Items), lists:reverse(CommonTokens)};
+
+              _ -> {error, bad_response}
+            end.
 
 filter_elements(XmlNodes) ->
             lists:filter(fun(Elem) when is_record(Elem, xmlElement) -> true;

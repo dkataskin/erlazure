@@ -50,7 +50,7 @@ get_queue_unique_name() ->
 
 parse_list_queues_response_test() ->
                 Response = test_utils:read_file("list_queues_response.xml"),
-                ParseResult = parse_list_queues_response(Response),
+                ParseResult = erlazure_queue:parse_queue_list(Response),
 
                 ?assertMatch({[#queue{
                                   name =  "Queue 1",
@@ -60,55 +60,3 @@ parse_list_queues_response_test() ->
                                {marker, "Test marker value"},
                                {max_results, 154},
                                {next_marker, ""}]}, ParseResult).
-
-parse_list_queues_response(Elem, PropListItems) when is_record(Elem, xmlElement) ->
-                case Elem#xmlElement.name of
-                  'Queues' ->
-                    Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
-                    lists:foldl(fun parse_list_queues_response/2, [], Nodes);
-                  'Queue' -> [parse_queue_response(Elem) | PropListItems];
-                  _ -> PropListItems
-                end.
-
-parse_list_queues_response(Response) when is_list(Response) ->
-                {ParseResult, _} = xmerl_scan:string(Response),
-                parse_enumeration_result(ParseResult, fun parse_list_queues_response/2).
-
-parse_queue_response(#xmlElement { content = Content}) ->
-                Nodes = erlazure_xml:filter_elements(Content),
-                lists:foldl(fun parse_queue_response/2, #queue{}, Nodes).
-
-parse_queue_response(Elem, Queue) when is_record(Elem, xmlElement) ->
-                case Elem#xmlElement.name of
-                  'Name' -> Queue#queue { name = erlazure_xml:parse_str(Elem) };
-                  'Url' -> Queue#queue { url = erlazure_xml:parse_str(Elem) };
-                  'Metadata' -> Queue#queue { metadata = parse_metadata_response(Elem) };
-                  _ -> Queue
-                end.
-
-parse_metadata_response(#xmlElement { content = Content }) ->
-                Nodes = erlazure_xml:filter_elements(Content),
-                lists:foldl(fun parse_metadata_response/2, [], Nodes).
-
-parse_metadata_response(Elem, Items) when is_record(Elem, xmlElement) ->
-                [{Elem#xmlElement.name, erlazure_xml:parse_str(Elem)} | Items].
-
-parse_enumeration_common_tokens(Elem, Tokens) when is_record(Elem, xmlElement) ->
-                case Elem#xmlElement.name of
-                  'Prefix' -> [{prefix, erlazure_xml:parse_str(Elem)} | Tokens];
-                  'Marker' -> [{marker, erlazure_xml:parse_str(Elem)} | Tokens];
-                  'MaxResults' -> [{max_results, erlazure_xml:parse_int(Elem)} | Tokens];
-                  'NextMarker' -> [{next_marker, erlazure_xml:parse_str(Elem)} | Tokens];
-                  _ -> Tokens
-                end.
-
-parse_enumeration_result(Elem, ParseFun) when is_record(Elem, xmlElement) ->
-                case Elem#xmlElement.name of
-                  'EnumerationResults' ->
-                    Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
-                    CommonTokens = lists:foldl(fun parse_enumeration_common_tokens/2, [], Nodes),
-                    Items = lists:foldl(ParseFun, [], Nodes),
-                    {lists:reverse(Items), lists:reverse(CommonTokens)};
-
-                  _ -> {error, bad_response}
-                end.

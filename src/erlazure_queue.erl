@@ -34,12 +34,13 @@
 -author("Dmitry Kataskin").
 
 -include("erlazure.hrl").
+-include_lib("xmerl/include/xmerl.hrl").
 
 %% API
 -export([parse_queue_list/1, parse_message_list/1, get_request_body/1, get_request_param_specs/0]).
 
-parse_queue_list(Queues) ->
-          erlazure_xml:parse_list(fun parse_queue/1, Queues).
+%parse_queue_list(Queues) ->
+%          erlazure_xml:parse_list(fun parse_queue/1, Queues).
 
 parse_message_list(Messages) ->
           erlazure_xml:parse_list(fun parse_message/1, Messages).
@@ -55,12 +56,38 @@ parse_message({"QueueMessage", _, Elements}) ->
             text = base64:decode_to_string(erlazure_xml:get_element_text("MessageText", Elements))
           }.
 
-parse_queue({"Queue", _, Elements}) ->
-          #queue{
-            name = erlazure_xml:get_element_text("Name", Elements),
-            url = erlazure_xml:get_element_text("Url", Elements),
-            metadata = erlazure_xml:parse_metadata(Elements)
-          }.
+%parse_queue({"Queue", _, Elements}) ->
+%          #queue{
+%            name = erlazure_xml:get_element_text("Name", Elements),
+%            url = erlazure_xml:get_element_text("Url", Elements),
+%            metadata = erlazure_xml:parse_metadata(Elements)
+%          }.
+
+
+parse_queue_list(Elem, PropListItems) when is_record(Elem, xmlElement) ->
+          case Elem#xmlElement.name of
+            'Queues' ->
+              Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
+              lists:foldl(fun parse_queue_list/2, [], Nodes);
+            'Queue' -> [parse_queue_response(Elem) | PropListItems];
+            _ -> PropListItems
+          end.
+
+parse_queue_list(Response) when is_list(Response) ->
+          {ParseResult, _} = xmerl_scan:string(Response),
+          erlazure_xml:parse_enumeration(ParseResult, fun parse_queue_list/2).
+
+parse_queue_response(#xmlElement { content = Content}) ->
+          Nodes = erlazure_xml:filter_elements(Content),
+          lists:foldl(fun parse_queue_response/2, #queue{}, Nodes).
+
+parse_queue_response(Elem, Queue) when is_record(Elem, xmlElement) ->
+          case Elem#xmlElement.name of
+            'Name' -> Queue#queue { name = erlazure_xml:parse_str(Elem) };
+            'Url' -> Queue#queue { url = erlazure_xml:parse_str(Elem) };
+            'Metadata' -> Queue#queue { metadata = erlazure_xml:parse_metadata(Elem) };
+            _ -> Queue
+          end.
 
 get_request_body(Message) ->
           Data = {'QueueMessage', [], [{'MessageText', [], [base64:encode_to_string(Message)]}]},
