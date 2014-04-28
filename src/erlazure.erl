@@ -219,14 +219,8 @@ handle_call({list_queues, Options}, _From, State) ->
                                                     Options),
 
             {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
-            {ok, {_, _, Elements}, _} = erlsom:simple_form(Body),
-
-            case lists:keyfind("Queues", 1, Elements) of
-              {"Queues", _, QueueListElement} ->
-                  {reply, erlazure_queue:parse_queue_list(QueueListElement), State};
-              false ->
-                  {reply, [], State}
-            end;
+            {ok, ParseResult} = erlazure_queue:parse_queue_list(Body),
+            {reply, ParseResult, State};
 
 % Get queue acl
 handle_call({get_queue_acl, Queue, Options}, _From, State) ->

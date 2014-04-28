@@ -41,26 +41,12 @@ get_element_text(ElementName, Elements) when is_list(ElementName), is_list(Eleme
               false -> ""
             end.
 
-%parse_metadata([]) -> [];
-
-%parse_metadata(Elements) ->
-%            case lists:keyfind("Metadata", 1, Elements) of
-%              {"Metadata", _, MetadataElements} ->
-%                FoldFun = fun({Element, _, Value}, Acc) ->
-%                  [{Element, lists:flatten(Value)} | Acc]
-%                end,
-%                lists:foldl(FoldFun, [], MetadataElements);
-%              _ -> []
-%            end.
-
 parse_list(ParseFun, List) ->
             FoldFun = fun(Element, Acc) ->
               [ParseFun(Element) | Acc]
             end,
             lists:reverse(lists:foldl(FoldFun, [], List)).
 
-
-%% xmerl
 parse_metadata(#xmlElement { content = Content }) ->
             Nodes = erlazure_xml:filter_elements(Content),
             lists:foldl(fun parse_metadata/2, [], Nodes).
@@ -83,7 +69,7 @@ parse_enumeration(Elem, ParseFun) when is_record(Elem, xmlElement) ->
                 Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
                 CommonTokens = lists:foldl(fun parse_common_tokens/2, [], Nodes),
                 Items = lists:foldl(ParseFun, [], Nodes),
-                {lists:reverse(Items), lists:reverse(CommonTokens)};
+                {ok, {lists:reverse(Items), lists:reverse(CommonTokens)}};
 
               _ -> {error, bad_response}
             end.

@@ -50,7 +50,7 @@ get_queue_unique_name() ->
 
 parse_list_queues_response_test() ->
                 Response = test_utils:read_file("list_queues_response.xml"),
-                ParseResult = erlazure_queue:parse_queue_list(Response),
+                {ok, ParseResult} = erlazure_queue:parse_queue_list(Response),
 
                 ?assertMatch({[#queue{
                                   name =  "Queue 1",

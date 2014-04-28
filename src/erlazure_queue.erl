@@ -39,9 +39,6 @@
 %% API
 -export([parse_queue_list/1, parse_message_list/1, get_request_body/1, get_request_param_specs/0]).
 
-%parse_queue_list(Queues) ->
-%          erlazure_xml:parse_list(fun parse_queue/1, Queues).
-
 parse_message_list(Messages) ->
           erlazure_xml:parse_list(fun parse_message/1, Messages).
 
@@ -55,14 +52,6 @@ parse_message({"QueueMessage", _, Elements}) ->
             dequeue_count = list_to_integer(erlazure_xml:get_element_text("DequeueCount", Elements)),
             text = base64:decode_to_string(erlazure_xml:get_element_text("MessageText", Elements))
           }.
-
-%parse_queue({"Queue", _, Elements}) ->
-%          #queue{
-%            name = erlazure_xml:get_element_text("Name", Elements),
-%            url = erlazure_xml:get_element_text("Url", Elements),
-%            metadata = erlazure_xml:parse_metadata(Elements)
-%          }.
-
 
 parse_queue_list(Elem, PropListItems) when is_record(Elem, xmlElement) ->
           case Elem#xmlElement.name of
