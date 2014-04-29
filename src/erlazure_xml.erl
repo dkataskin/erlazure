@@ -51,10 +51,10 @@ parse_metadata(#xmlElement { content = Content }) ->
             Nodes = erlazure_xml:filter_elements(Content),
             lists:foldl(fun parse_metadata/2, [], Nodes).
 
-parse_metadata(Elem, Items) when is_record(Elem, xmlElement) ->
+parse_metadata(Elem=#xmlElement{}, Items) ->
             [{Elem#xmlElement.name, erlazure_xml:parse_str(Elem)} | Items].
 
-parse_common_tokens(Elem, Tokens) when is_record(Elem, xmlElement) ->
+parse_common_tokens(Elem=#xmlElement{}, Tokens) ->
             case Elem#xmlElement.name of
               'Prefix' -> [{prefix, erlazure_xml:parse_str(Elem)} | Tokens];
               'Marker' -> [{marker, erlazure_xml:parse_str(Elem)} | Tokens];
@@ -63,7 +63,7 @@ parse_common_tokens(Elem, Tokens) when is_record(Elem, xmlElement) ->
               _ -> Tokens
             end.
 
-parse_enumeration(Elem, ParseFun) when is_record(Elem, xmlElement) ->
+parse_enumeration(Elem=#xmlElement{}, ParseFun) ->
             case Elem#xmlElement.name of
               'EnumerationResults' ->
                 Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
@@ -84,8 +84,8 @@ get_text(#xmlElement { content = Content }) ->
               _ -> ""
             end.
 
-parse_str(XmlElement) when is_record(XmlElement, xmlElement) ->
+parse_str(XmlElement=#xmlElement{}) ->
             get_text(XmlElement).
 
-parse_int(XmlElement) when is_record(XmlElement, xmlElement) ->
+parse_int(XmlElement=#xmlElement{}) ->
             erlang:list_to_integer(get_text(XmlElement)).

@@ -53,7 +53,7 @@ parse_message({"QueueMessage", _, Elements}) ->
             text = base64:decode_to_string(erlazure_xml:get_element_text("MessageText", Elements))
           }.
 
-parse_queue_list(Elem, PropListItems) when is_record(Elem, xmlElement) ->
+parse_queue_list(Elem=#xmlElement{}, PropListItems) ->
           case Elem#xmlElement.name of
             'Queues' ->
               Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
@@ -69,11 +69,11 @@ parse_queue_list(Response) when is_list(Response) ->
           {ParseResult, _} = xmerl_scan:string(Response),
           erlazure_xml:parse_enumeration(ParseResult, fun parse_queue_list/2).
 
-parse_queue_response(#xmlElement { content = Content}) ->
+parse_queue_response(#xmlElement { content = Content }) ->
           Nodes = erlazure_xml:filter_elements(Content),
           lists:foldl(fun parse_queue_response/2, #queue{}, Nodes).
 
-parse_queue_response(Elem, Queue) when is_record(Elem, xmlElement) ->
+parse_queue_response(Elem=#xmlElement{}, Queue) ->
           case Elem#xmlElement.name of
             'Name' -> Queue#queue { name = erlazure_xml:parse_str(Elem) };
             'Url' -> Queue#queue { url = erlazure_xml:parse_str(Elem) };
