@@ -37,17 +37,6 @@
 %% API
 -export([]).
 
-%named_test_() ->
-%  {setup,
-%    fun() -> erlazure:start("<account>", "<key>") end,
-%    fun(_) -> ok end,
-%    [?_assertMatch({ok, created}, erlazure:create_queue(get_queue_unique_name()))
-%    ]
-%}.
-
-get_queue_unique_name() ->
-                test_utils:append_ticks("TestQueue").
-
 parse_list_queues_response_test() ->
                 Response = test_utils:read_file("list_queues_response.xml"),
                 {ok, ParseResult} = erlazure_queue:parse_queue_list(Response),
@@ -60,3 +49,14 @@ parse_list_queues_response_test() ->
                                {marker, "Test marker value"},
                                {max_results, 154},
                                {next_marker, ""}]}, ParseResult).
+
+%named_test_() ->
+%  {setup,
+%    fun() -> erlazure:start("<account>", "<key>") end,
+%    fun(_) -> ok end,
+%    [?_assertMatch({ok, created}, erlazure:create_queue(get_queue_unique_name()))
+%    ]
+%}.
+
+get_queue_unique_name() ->
+                test_utils:append_ticks("TestQueue").

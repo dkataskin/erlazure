@@ -62,6 +62,9 @@ parse_queue_list(Elem, PropListItems) when is_record(Elem, xmlElement) ->
             _ -> PropListItems
           end.
 
+parse_queue_list(Response) when is_binary(Response) ->
+          parse_queue_list(erlang:binary_to_list(Response));
+
 parse_queue_list(Response) when is_list(Response) ->
           {ParseResult, _} = xmerl_scan:string(Response),
           erlazure_xml:parse_enumeration(ParseResult, fun parse_queue_list/2).
