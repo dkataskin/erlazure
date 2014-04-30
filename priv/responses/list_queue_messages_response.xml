@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<QueueMessagesList>
+    <QueueMessage>
+        <MessageId>4e3a2035-845a-425e-9324-fae325b27feb</MessageId>
+        <InsertionTime>Wed, 30 Apr 2014 05:53:53 GMT</InsertionTime>
+        <ExpirationTime>Wed, 07 May 2014 05:53:53 GMT</ExpirationTime>
+        <PopReceipt>AgAAAAMAAAAAAAAAClo5VTlkzwE=</PopReceipt>
+        <TimeNextVisible>Wed, 30 Apr 2014 05:59:22 GMT</TimeNextVisible>
+        <DequeueCount>3</DequeueCount>
+        <MessageText>ZGFmYXNkZg0KYXNkZmENCnNkZmENCnNkZg0KYXMNCmQNCmFzDQpkZg0KYXNkZg==</MessageText>
+    </QueueMessage>
+</QueueMessagesList>
