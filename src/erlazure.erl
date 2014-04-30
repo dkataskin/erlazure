@@ -290,6 +290,7 @@ handle_call({get_messages, Queue, Options}, _From, State) ->
 handle_call({peek_messages, Queue, Options}, _From, State) ->
             ServiceContext = create_service_context(?queue_service, State),
             RequestContext = create_request_context(?queue_service,
+                                                    State,
                                                     string:to_lower(Queue) ++ "/messages",
                                                     [{peek_only, true}],
                                                     Options),
