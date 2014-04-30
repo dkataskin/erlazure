@@ -37,21 +37,37 @@
 -include_lib("xmerl/include/xmerl.hrl").
 
 %% API
--export([parse_queue_list/1, parse_message_list/1, get_request_body/1, get_request_param_specs/0]).
+-export([parse_queue_list/1, parse_queue_messages_list/1, get_request_body/1, get_request_param_specs/0]).
 
-parse_message_list(Messages) ->
-          erlazure_xml:parse_list(fun parse_message/1, Messages).
+parse_queue_messages_list(Response) when is_binary(Response) ->
+          parse_queue_messages_list(erlang:binary_to_list(Response));
 
-parse_message({"QueueMessage", _, Elements}) ->
-          #queue_message{
-            id = erlazure_xml:get_element_text("MessageId", Elements),
-            insertion_time = erlazure_xml:get_element_text("InsertionTime", Elements),
-            exp_time = erlazure_xml:get_element_text("ExpirationTime", Elements),
-            pop_receipt = erlazure_xml:get_element_text("PopReceipt", Elements),
-            next_visible = erlazure_xml:get_element_text("TimeNextVisible", Elements),
-            dequeue_count = list_to_integer(erlazure_xml:get_element_text("DequeueCount", Elements)),
-            text = base64:decode_to_string(erlazure_xml:get_element_text("MessageText", Elements))
-          }.
+parse_queue_messages_list(Response) when is_list(Response) ->
+          {ParseResult, _} = xmerl_scan:string(Response),
+          parse_queue_messages_list(ParseResult);
+
+parse_queue_messages_list(Elem=#xmlElement{}) ->
+          case Elem#xmlElement.name of
+            'QueueMessagesList' ->
+              Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
+              {ok, lists:map(fun parse_queue_message/1, Nodes)};
+            _ -> {error, bad_response}
+          end.
+
+parse_queue_message(Elem=#xmlElement{}) ->
+          Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
+          lists:foldl(fun parse_queue_mesage/2, #queue_message{}, Nodes).
+
+parse_queue_mesage(Elem=#xmlElement{}, Message=#queue_message{}) ->
+          case Elem#xmlElement.name of
+            'MessageId' -> Message#queue_message{ id = erlazure_xml:parse_str(Elem) };
+            'InsertionTime' -> Message#queue_message { insertion_time = erlazure_xml:parse_str(Elem) };
+            'ExpirationTime' -> Message#queue_message { exp_time = erlazure_xml:parse_str(Elem) };
+            'PopReceipt' -> Message#queue_message { pop_receipt = erlazure_xml:parse_str(Elem) };
+            'TimeNextVisible' -> Message#queue_message { next_visible = erlazure_xml:parse_str(Elem) };
+            'DequeueCount' -> Message#queue_message { dequeue_count = erlazure_xml:parse_int(Elem) };
+            'MessageText' -> Message#queue_message { text = base64:decode_to_string(erlazure_xml:parse_str(Elem)) }
+          end.
 
 parse_queue_list(Elem=#xmlElement{}, PropListItems) ->
           case Elem#xmlElement.name of

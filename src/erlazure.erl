@@ -284,8 +284,7 @@ handle_call({get_messages, Queue, Options}, _From, State) ->
                                                     Options),
 
             {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
-            {ok, {_, _, Elements}, _} = erlsom:simple_form(Body),
-            {reply, erlazure_queue:parse_message_list(Elements), State};
+            {reply, erlazure_queue:parse_queue_messages_list(Body), State};
 
 % Peek messages from the queue
 handle_call({peek_messages, Queue, Options}, _From, State) ->
@@ -296,8 +295,7 @@ handle_call({peek_messages, Queue, Options}, _From, State) ->
                                                     Options),
 
             {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
-            {ok, {_, _, Elements}, _} = erlsom:simple_form(Body),
-            {reply, erlazure_queue:parse_message_list(Elements), State};
+            {reply, erlazure_queue:parse_queue_messages_list(Body), State};
 
 % Delete message from the queue
 handle_call({delete_message, Queue, MessageId, PopReceipt, Options}, _From, State) ->
