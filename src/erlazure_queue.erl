@@ -73,7 +73,7 @@ parse_queue_response(#xmlElement { content = Content }) ->
           Nodes = erlazure_xml:filter_elements(Content),
           lists:foldl(fun parse_queue_response/2, #queue{}, Nodes).
 
-parse_queue_response(Elem=#xmlElement{}, Queue) ->
+parse_queue_response(Elem=#xmlElement{}, Queue=#queue{}) ->
           case Elem#xmlElement.name of
             'Name' -> Queue#queue { name = erlazure_xml:parse_str(Elem) };
             'Url' -> Queue#queue { url = erlazure_xml:parse_str(Elem) };

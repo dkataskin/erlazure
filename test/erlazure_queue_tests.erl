@@ -50,6 +50,18 @@ parse_list_queues_response_test() ->
                                {max_results, 154},
                                {next_marker, ""}]}, ParseResult).
 
+parse_list_messages_response_test() ->
+                Response = test_utils:read_file("list_queue_messages_response.xml"),
+                {ok, ParseResult} = parse_queue_messages_list(Response),
+                ?assertMatch([#queue_message{
+                                  id = "4e3a2035-845a-425e-9324-fae325b27feb",
+                                  insertion_time = "Wed, 30 Apr 2014 05:53:53 GMT",
+                                  exp_time = "Wed, 07 May 2014 05:53:53 GMT",
+                                  pop_receipt = "AgAAAAMAAAAAAAAAClo5VTlkzwE=",
+                                  next_visible = "Wed, 30 Apr 2014 05:59:22 GMT",
+                                  dequeue_count = 3,
+                                  text = "dafasdf\r\nasdfa\r\nsdfa\r\nsdf\r\nas\r\nd\r\nas\r\ndf\r\nasdf"}], ParseResult).
+
 %named_test_() ->
 %  {setup,
 %    fun() -> erlazure:start("<account>", "<key>") end,
@@ -57,6 +69,36 @@ parse_list_queues_response_test() ->
 %    [?_assertMatch({ok, created}, erlazure:create_queue(get_queue_unique_name()))
 %    ]
 %}.
+
+parse_queue_messages_list(Response) when is_binary(Response) ->
+                parse_queue_messages_list(erlang:binary_to_list(Response));
+
+parse_queue_messages_list(Response) when is_list(Response) ->
+                {ParseResult, _} = xmerl_scan:string(Response),
+                parse_queue_messages_list(ParseResult);
+
+parse_queue_messages_list(Elem=#xmlElement{}) ->
+                case Elem#xmlElement.name of
+                  'QueueMessagesList' ->
+                        Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
+                        {ok, lists:map(fun parse_queue_message/1, Nodes)};
+                  _ -> {error, bad_response}
+                end.
+
+parse_queue_message(Elem=#xmlElement{}) ->
+                Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
+                lists:foldl(fun parse_queue_mesage/2, #queue_message{}, Nodes).
+
+parse_queue_mesage(Elem=#xmlElement{}, Message=#queue_message{}) ->
+                case Elem#xmlElement.name of
+                  'MessageId' -> Message#queue_message{ id = erlazure_xml:parse_str(Elem) };
+                  'InsertionTime' -> Message#queue_message { insertion_time = erlazure_xml:parse_str(Elem) };
+                  'ExpirationTime' -> Message#queue_message { exp_time = erlazure_xml:parse_str(Elem) };
+                  'PopReceipt' -> Message#queue_message { pop_receipt = erlazure_xml:parse_str(Elem) };
+                  'TimeNextVisible' -> Message#queue_message { next_visible = erlazure_xml:parse_str(Elem) };
+                  'DequeueCount' -> Message#queue_message { dequeue_count = erlazure_xml:parse_int(Elem) };
+                  'MessageText' -> Message#queue_message { text = base64:decode_to_string(erlazure_xml:parse_str(Elem)) }
+                end.
 
 get_queue_unique_name() ->
                 test_utils:append_ticks("TestQueue").
