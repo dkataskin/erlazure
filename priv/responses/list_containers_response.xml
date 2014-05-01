@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<EnumerationResults ServiceEndpoint="https://myaccount.blob.core.windows.net">
+    <Prefix>string-value</Prefix>
+    <Marker>string-value</Marker>
+    <MaxResults>int-value</MaxResults>
+    <Containers>
+        <Container>
+            <Name>container1</Name>
+            <Properties>
+                <Last-Modified>date/time-value</Last-Modified>
+                <Etag>etag</Etag>
+                <LeaseStatus>locked | unlocked</LeaseStatus>
+                <LeaseState>available | leased | expired | breaking | broken</LeaseState>
+                <LeaseDuration>infinite | fixed</LeaseDuration>
+            </Properties>
+            <Metadata>
+                <metadata-name>value</metadata-name>
+            </Metadata>
+        </Container>
+        <Container>
+            <Name>container2</Name>
+            <Properties>
+                <Last-Modified>date/time-value</Last-Modified>
+                <Etag>etag</Etag>
+                <LeaseStatus>locked | unlocked</LeaseStatus>
+                <LeaseState>available | leased | expired | breaking | broken</LeaseState>
+                <LeaseDuration>infinite | fixed</LeaseDuration>
+            </Properties>
+            <Metadata>
+                <metadata-name>value</metadata-name>
+            </Metadata>
+        </Container>
+    </Containers>
+    <NextMarker>marker-value</NextMarker>
+</EnumerationResults>
