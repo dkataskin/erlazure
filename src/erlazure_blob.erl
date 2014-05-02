@@ -40,33 +40,34 @@
 -export([parse_container_list/1, parse_blob_list/1, parse_blob/1, get_request_body/1, parse_block_list/1,
          get_request_param_specs/0]).
 
-parse_container_list(Response) when is_binary(Response) ->
-                parse_container_list(erlang:binary_to_list(Response));
-
-parse_container_list(Response) when is_list(Response) ->
-                {ParseResult, _} = xmerl_scan:string(Response),
-                erlazure_xml:parse_enumeration(ParseResult, fun parse_container_list/2).
-
-parse_container_list(Elem=#xmlElement{}, PropListItems) ->
-                case Elem#xmlElement.name of
-                  'Containers' ->
-                    Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
-                    lists:foldl(fun parse_container_list/2, [], Nodes);
-                  'Container' -> [parse_container_response(Elem) | PropListItems];
-                  _ -> PropListItems
-                end.
+parse_container_list(Response) ->
+                erlazure_xml:parse_enumeration(Response, {'Containers', 'Container', fun parse_container_response/1}).
 
 parse_container_response(#xmlElement { content = Content }) ->
                 Nodes = erlazure_xml:filter_elements(Content),
-                lists:foldl(fun parse_container_response/2, #blob_container{}, Nodes).
+                FoldFun = fun(Elem=#xmlElement{}, Container=#blob_container{}) ->
+                  case Elem#xmlElement.name of
+                    'Name' -> Container#blob_container { name = erlazure_xml:parse_str(Elem) };
+                    'Url' -> Container#blob_container { url = erlazure_xml:parse_str(Elem) };
+                    'Metadata' -> Container#blob_container { metadata = erlazure_xml:parse_metadata(Elem) };
+                    'Properties' -> Container#blob_container { properties = parse_container_properties(Elem) };
+                    _ -> Container
+                  end
+                end,
+                lists:foldl(FoldFun, #blob_container{}, Nodes).
 
-parse_container_response(Elem=#xmlElement{}, Container=#blob_container{}) ->
-                case Elem#xmlElement.name of
-                  'Name' -> Container#blob_container { name = erlazure_xml:parse_str(Elem) };
-                  'Url' -> Container#blob_container { url = erlazure_xml:parse_str(Elem) };
-                  'Metadata' -> Container#blob_container { metadata = erlazure_xml:parse_metadata(Elem) };
-                  _ -> Container
-                end.
+parse_container_properties(#xmlElement { content = Content }) ->
+                Nodes = erlazure_xml:filter_elements(Content),
+                FoldFun = fun(Elem=#xmlElement{}, Properties) ->
+                  case Elem#xmlElement.name of
+                    'Last-Modified' -> [{last_modified, erlazure_xml:parse_str(Elem)} | Properties];
+                    'Etag' -> [{etag, erlazure_xml:parse_str(Elem)} | Properties];
+                    'LeaseStatus' -> [{lease_status, erlang:list_to_atom(erlazure_xml:parse_str(Elem))} | Properties];
+                    'LeaseState' -> [{lease_state, erlang:list_to_atom(erlazure_xml:parse_str(Elem))} | Properties];
+                    _ -> Properties
+                  end
+                end,
+                lists:reverse(lists:foldl(FoldFun, [], Nodes)).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 parse_blob_list(Blobs) ->

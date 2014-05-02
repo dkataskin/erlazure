@@ -39,11 +39,9 @@ parse_list_containers_response_test() ->
                 Response = test_utils:read_file("list_containers.xml"),
                 {ok, ParseResult} = erlazure_blob:parse_container_list(Response),
 
-                ?assertMatch({[#queue{
-                  name =  "Queue 1",
-                  url = "http://queue1.queue.core.windows.net",
-                  metadata = [{'metadata-name',"first metadata item"}]}],
-                  [{prefix, "Test prefix value"},
-                    {marker, "Test marker value"},
-                    {max_results, 154},
-                    {next_marker, ""}]}, ParseResult).
+                ?assertMatch({[#blob_container{
+                  name =  "cntr1",
+                  url = "https://strg1.blob.core.windows.net/cntr1",
+                  metadata = [],
+                  properties = [] }],
+                  [{next_marker, ""}]}, ParseResult).
