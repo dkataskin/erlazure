@@ -38,7 +38,7 @@
 -export([]).
 
 parse_list_queues_response_test() ->
-                Response = test_utils:read_file("list_queues_response.xml"),
+                Response = test_utils:read_file("list_queues.xml"),
                 {ok, ParseResult} = erlazure_queue:parse_queue_list(Response),
 
                 ?assertMatch({[#queue{
@@ -51,7 +51,7 @@ parse_list_queues_response_test() ->
                                {next_marker, ""}]}, ParseResult).
 
 parse_list_messages_response_test() ->
-                Response = test_utils:read_file("list_queue_messages_response.xml"),
+                Response = test_utils:read_file("list_queue_messages.xml"),
                 {ok, ParseResult} = erlazure_queue:parse_queue_messages_list(Response),
                 ?assertMatch([#queue_message{
                                   id = "4e3a2035-845a-425e-9324-fae325b27feb",

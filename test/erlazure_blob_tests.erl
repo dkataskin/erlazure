@@ -35,16 +35,15 @@
 %% API
 -export([]).
 
-passing_test() ->
-{setup,
-  fun () -> erlazure:start("", "") end,
-  fun () -> {ok, stopped} end,
-  [?_assertEqual({ok, created}, erlazure:create_queue(append_ticks("TestQueue")))
-  ]
-}.
+parse_list_containers_response_test() ->
+                Response = test_utils:read_file("list_containers.xml"),
+                {ok, ParseResult} = erlazure_blob:parse_container_list(Response),
 
-append_ticks(Name) ->
-    Name ++ integer_to_list(get_ticks()).
-
-get_ticks() ->
-  calendar:datetime_to_gregorian_seconds(calendar:local_time()).
+                ?assertMatch({[#queue{
+                  name =  "Queue 1",
+                  url = "http://queue1.queue.core.windows.net",
+                  metadata = [{'metadata-name',"first metadata item"}]}],
+                  [{prefix, "Test prefix value"},
+                    {marker, "Test marker value"},
+                    {max_results, 154},
+                    {next_marker, ""}]}, ParseResult).

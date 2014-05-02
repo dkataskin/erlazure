@@ -26,85 +26,106 @@
 %% POSSIBILITY OF SUCH DAMAGE.
 
 %%% ====================================================================
-%%% Queue REST service response parsers.
+%%% Blob REST service response parsers.
 %%% ====================================================================
 
 -module(erlazure_blob).
 -author("Dmitry Kataskin").
 
+-include_lib("xmerl/include/xmerl.hrl").
 -include("erlazure.hrl").
+
 
 %% API
 -export([parse_container_list/1, parse_blob_list/1, parse_blob/1, get_request_body/1, parse_block_list/1,
          get_request_param_specs/0]).
 
-parse_container_list(Containers) ->
-          erlazure_xml:parse_list(fun parse_container/1, Containers).
+parse_container_list(Response) when is_binary(Response) ->
+                parse_container_list(erlang:binary_to_list(Response));
 
+parse_container_list(Response) when is_list(Response) ->
+                {ParseResult, _} = xmerl_scan:string(Response),
+                erlazure_xml:parse_enumeration(ParseResult, fun parse_container_list/2).
+
+parse_container_list(Elem=#xmlElement{}, PropListItems) ->
+                case Elem#xmlElement.name of
+                  'Containers' ->
+                    Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
+                    lists:foldl(fun parse_container_list/2, [], Nodes);
+                  'Container' -> [parse_container_response(Elem) | PropListItems];
+                  _ -> PropListItems
+                end.
+
+parse_container_response(#xmlElement { content = Content }) ->
+                Nodes = erlazure_xml:filter_elements(Content),
+                lists:foldl(fun parse_container_response/2, #blob_container{}, Nodes).
+
+parse_container_response(Elem=#xmlElement{}, Container=#blob_container{}) ->
+                case Elem#xmlElement.name of
+                  'Name' -> Container#blob_container { name = erlazure_xml:parse_str(Elem) };
+                  'Url' -> Container#blob_container { url = erlazure_xml:parse_str(Elem) };
+                  'Metadata' -> Container#blob_container { metadata = erlazure_xml:parse_metadata(Elem) };
+                  _ -> Container
+                end.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 parse_blob_list(Blobs) ->
-          erlazure_xml:parse_list(fun parse_blob/1, Blobs).
+                erlazure_xml:parse_list(fun parse_blob/1, Blobs).
 
 parse_block_list(Blocks) ->
-          io:format("~p~n", [Blocks]),
-          Committed = parse_block_list("CommittedBlocks", committed, Blocks),
-          Uncommitted = parse_block_list("UncommittedBlocks", uncommitted, Blocks),
-          Committed ++ Uncommitted.
+                io:format("~p~n", [Blocks]),
+                Committed = parse_block_list("CommittedBlocks", committed, Blocks),
+                Uncommitted = parse_block_list("UncommittedBlocks", uncommitted, Blocks),
+                Committed ++ Uncommitted.
 
 parse_block_list(NodeName, BlockType, Blocks) ->
-          case lists:keyfind(NodeName, 1, Blocks) of
-            {NodeName, _, Elements} ->
-              ParseFun = fun(Element) -> parse_block(Element, BlockType) end,
-              erlazure_xml:parse_list(ParseFun, Elements);
-            false -> []
-          end.
-
-parse_container({"Container", _, Elements}) ->
-          #blob_container{
-            name = erlazure_xml:get_element_text("Name", Elements),
-            url = erlazure_xml:get_element_text("Url", Elements),
-            metadata = erlazure_xml:parse_metadata(Elements)
-          }.
+                case lists:keyfind(NodeName, 1, Blocks) of
+                  {NodeName, _, Elements} ->
+                    ParseFun = fun(Element) -> parse_block(Element, BlockType) end,
+                    erlazure_xml:parse_list(ParseFun, Elements);
+                  false -> []
+                end.
 
 parse_blob({"Blob", _, Elements}) ->
-          {"Properties", _, Properties} = lists:keyfind("Properties", 1, Elements),
+                {"Properties", _, Properties} = lists:keyfind("Properties", 1, Elements),
 
-          #cloud_blob{
-            name = erlazure_xml:get_element_text("Name", Elements),
-            url = erlazure_xml:get_element_text("Url", Elements),
-            last_modified = erlazure_xml:get_element_text("Last-Modified", Properties),
-            etag = erlazure_xml:get_element_text("ETag", Properties),
-            content_length = list_to_integer(erlazure_xml:get_element_text("Content-Length", Properties)),
-            content_type = erlazure_xml:get_element_text("Content-Type", Properties),
-            content_encoding = erlazure_xml:get_element_text("Content-Encoding", Properties),
-            content_language = erlazure_xml:get_element_text("Content-Language", Properties),
-            content_md5 = erlazure_xml:get_element_text("Content-MD5", Properties),
-            cache_control = erlazure_xml:get_element_text("Cache-Control", Properties),
-            type = str_to_blob_type(erlazure_xml:get_element_text("BlobType", Properties)),
-            copy = parse_copy_state(Properties),
-            metadata = erlazure_xml:parse_metadata(Elements)
-          }.
+                #cloud_blob{
+                  name = erlazure_xml:get_element_text("Name", Elements),
+                  url = erlazure_xml:get_element_text("Url", Elements),
+                  last_modified = erlazure_xml:get_element_text("Last-Modified", Properties),
+                  etag = erlazure_xml:get_element_text("ETag", Properties),
+                  content_length = list_to_integer(erlazure_xml:get_element_text("Content-Length", Properties)),
+                  content_type = erlazure_xml:get_element_text("Content-Type", Properties),
+                  content_encoding = erlazure_xml:get_element_text("Content-Encoding", Properties),
+                  content_language = erlazure_xml:get_element_text("Content-Language", Properties),
+                  content_md5 = erlazure_xml:get_element_text("Content-MD5", Properties),
+                  cache_control = erlazure_xml:get_element_text("Cache-Control", Properties),
+                  type = str_to_blob_type(erlazure_xml:get_element_text("BlobType", Properties)),
+                  copy = parse_copy_state(Properties),
+                  metadata = erlazure_xml:parse_metadata(Elements)
+                }.
 
 parse_block({"Block", _, Elements}, Type) ->
-          #blob_block{
-            id = base64:decode_to_string(erlazure_xml:get_element_text("Name", Elements)),
-            size = list_to_integer(erlazure_xml:get_element_text("Size", Elements)),
-            type = Type
-          }.
+                #blob_block{
+                  id = base64:decode_to_string(erlazure_xml:get_element_text("Name", Elements)),
+                  size = list_to_integer(erlazure_xml:get_element_text("Size", Elements)),
+                  type = Type
+                }.
 
 parse_copy_state(Properties) ->
-          case lists:keyfind("CopyId", 1, Properties) of
-            {"CopyId", _, _} ->
-              #blob_copy_state{
-                id = erlazure_xml:get_element_text("CopyId", Properties),
-                status = list_to_atom(erlazure_xml:get_element_text("CopyStatus", Properties)),
-                source = erlazure_xml:get_element_text("CopySource", Properties),
-                progress = erlazure_xml:get_element_text("CopyProgress", Properties),
-                completion_time = erlazure_xml:get_element_text("CopyCompletionTime", Properties),
-                status_description = erlazure_xml:get_element_text("CopyStatusDescription", Properties)
-              };
-          false ->
-            undefined
-          end.
+                case lists:keyfind("CopyId", 1, Properties) of
+                  {"CopyId", _, _} ->
+                    #blob_copy_state{
+                      id = erlazure_xml:get_element_text("CopyId", Properties),
+                      status = list_to_atom(erlazure_xml:get_element_text("CopyStatus", Properties)),
+                      source = erlazure_xml:get_element_text("CopySource", Properties),
+                      progress = erlazure_xml:get_element_text("CopyProgress", Properties),
+                      completion_time = erlazure_xml:get_element_text("CopyCompletionTime", Properties),
+                      status_description = erlazure_xml:get_element_text("CopyStatusDescription", Properties)
+                    };
+                false ->
+                  undefined
+                end.
 
 str_to_blob_type("BlockBlob") -> block_blob;
 str_to_blob_type("PageBlob") -> page_blob.
@@ -125,23 +146,23 @@ block_type_to_node(committed) -> 'Committed';
 block_type_to_node(latest) -> 'Latest'.
 
 get_request_body(BlockRefs) ->
-          FoldFun = fun(BlockRef=#blob_block_ref{}, Acc) ->
-                        [{block_type_to_node(BlockRef#blob_block_ref.type),
-                          [],
-                          [base64:encode_to_string(BlockRef#blob_block_ref.id)]} | Acc]
-                    end,
-          Data = {'BlockList', [], lists:reverse(lists:foldl(FoldFun, [], BlockRefs))},
-          lists:flatten(xmerl:export_simple([Data], xmerl_xml)).
+                FoldFun = fun(BlockRef=#blob_block_ref{}, Acc) ->
+                              [{block_type_to_node(BlockRef#blob_block_ref.type),
+                                [],
+                                [base64:encode_to_string(BlockRef#blob_block_ref.id)]} | Acc]
+                          end,
+                Data = {'BlockList', [], lists:reverse(lists:foldl(FoldFun, [], BlockRefs))},
+                lists:flatten(xmerl:export_simple([Data], xmerl_xml)).
 
 get_request_param_specs() ->
-          [#param_spec{ id = block_list_type, type = uri, name = "blocklisttype" },
-           #param_spec{ id = blob_block_id, type = uri, name = "blockid" },
-           #param_spec{ id = res_type, type = uri, name = "restype" },
-           #param_spec{ id = blob_copy_source, type = header, name = "x-ms-copy-source" },
-           #param_spec{ id = blob_type, type = header, name = "x-ms-blob-type", parse_fun = fun erlazure_blob:blob_type_to_str/1 },
-           #param_spec{ id = blob_content_length, type = header, name = "x-ms-blob-content-length" },
-           #param_spec{ id = proposed_lease_id, type = header, name = "x-ms-proposed-lease-id" },
-           #param_spec{ id = lease_id, type = header, name = "x-ms-lease-id" },
-           #param_spec{ id = lease_duration, type = header, name = "x-ms-lease-duration" },
-           #param_spec{ id = lease_break_period, type = header, name = "x-ms-break-period" },
-           #param_spec{ id = lease_action, type = header, name = "x-ms-lease-action" }].
+                [#param_spec{ id = block_list_type, type = uri, name = "blocklisttype" },
+                 #param_spec{ id = blob_block_id, type = uri, name = "blockid" },
+                 #param_spec{ id = res_type, type = uri, name = "restype" },
+                 #param_spec{ id = blob_copy_source, type = header, name = "x-ms-copy-source" },
+                 #param_spec{ id = blob_type, type = header, name = "x-ms-blob-type", parse_fun = fun erlazure_blob:blob_type_to_str/1 },
+                 #param_spec{ id = blob_content_length, type = header, name = "x-ms-blob-content-length" },
+                 #param_spec{ id = proposed_lease_id, type = header, name = "x-ms-proposed-lease-id" },
+                 #param_spec{ id = lease_id, type = header, name = "x-ms-lease-id" },
+                 #param_spec{ id = lease_duration, type = header, name = "x-ms-lease-duration" },
+                 #param_spec{ id = lease_break_period, type = header, name = "x-ms-break-period" },
+                 #param_spec{ id = lease_action, type = header, name = "x-ms-lease-action" }].
