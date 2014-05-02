@@ -63,15 +63,35 @@ parse_common_tokens(Elem=#xmlElement{}, Tokens) ->
               _ -> Tokens
             end.
 
-parse_enumeration(Elem=#xmlElement{}, ParseFun) ->
+parse_enumeration(Response, ParseParams) when is_binary(Response) ->
+            parse_enumeration(erlang:binary_to_list(Response), ParseParams);
+
+parse_enumeration(Response, ParseParams) when is_list(Response) ->
+            {ParseResult, _} = xmerl_scan:string(Response),
+            erlazure_xml:parse_enumeration(ParseResult, ParseParams);
+
+parse_enumeration(Elem=#xmlElement{}, ParseParams) ->
             case Elem#xmlElement.name of
               'EnumerationResults' ->
                 Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
                 CommonTokens = lists:foldl(fun parse_common_tokens/2, [], Nodes),
-                Items = lists:foldl(ParseFun, [], Nodes),
+                FoldFun = fun(Item, Acc) -> parse_list(Item, Acc, ParseParams) end,
+                Items = lists:foldl(FoldFun, [], Nodes),
                 {ok, {lists:reverse(Items), lists:reverse(CommonTokens)}};
 
               _ -> {error, bad_response}
+            end.
+
+parse_list(Elem=#xmlElement{}, PropListItems, {Root, Node, ParseFun}) ->
+            case Elem#xmlElement.name of
+              Root ->
+                Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
+                FoldFun = fun(Item, Acc) -> parse_list(Item, Acc, {Root, Node, ParseFun}) end,
+                lists:foldl(FoldFun, [], Nodes);
+
+              Node -> [ParseFun(Elem) | PropListItems];
+
+              _ -> PropListItems
             end.
 
 filter_elements(XmlNodes) ->

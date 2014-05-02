@@ -69,33 +69,20 @@ parse_queue_mesage(Elem=#xmlElement{}, Message=#queue_message{}) ->
             'MessageText' -> Message#queue_message { text = base64:decode_to_string(erlazure_xml:parse_str(Elem)) }
           end.
 
-parse_queue_list(Elem=#xmlElement{}, PropListItems) ->
-          case Elem#xmlElement.name of
-            'Queues' ->
-              Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
-              lists:foldl(fun parse_queue_list/2, [], Nodes);
-            'Queue' -> [parse_queue_response(Elem) | PropListItems];
-            _ -> PropListItems
-          end.
-
-parse_queue_list(Response) when is_binary(Response) ->
-          parse_queue_list(erlang:binary_to_list(Response));
-
-parse_queue_list(Response) when is_list(Response) ->
-          {ParseResult, _} = xmerl_scan:string(Response),
-          erlazure_xml:parse_enumeration(ParseResult, fun parse_queue_list/2).
+parse_queue_list(Response) ->
+          erlazure_xml:parse_enumeration(Response, {'Queues', 'Queue', fun parse_queue_response/1}).
 
 parse_queue_response(#xmlElement { content = Content }) ->
           Nodes = erlazure_xml:filter_elements(Content),
-          lists:foldl(fun parse_queue_response/2, #queue{}, Nodes).
-
-parse_queue_response(Elem=#xmlElement{}, Queue=#queue{}) ->
-          case Elem#xmlElement.name of
-            'Name' -> Queue#queue { name = erlazure_xml:parse_str(Elem) };
-            'Url' -> Queue#queue { url = erlazure_xml:parse_str(Elem) };
-            'Metadata' -> Queue#queue { metadata = erlazure_xml:parse_metadata(Elem) };
-            _ -> Queue
-          end.
+          FoldFun = fun(Elem=#xmlElement{}, Queue=#queue{}) ->
+            case Elem#xmlElement.name of
+              'Name' -> Queue#queue { name = erlazure_xml:parse_str(Elem) };
+              'Url' -> Queue#queue { url = erlazure_xml:parse_str(Elem) };
+              'Metadata' -> Queue#queue { metadata = erlazure_xml:parse_metadata(Elem) };
+              _ -> Queue
+            end
+          end,
+          lists:foldl(FoldFun, #queue{}, Nodes).
 
 get_request_body(Message) ->
           Data = {'QueueMessage', [], [{'MessageText', [], [base64:encode_to_string(Message)]}]},
