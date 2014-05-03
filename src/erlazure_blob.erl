@@ -64,6 +64,7 @@ parse_container_properties(#xmlElement { content = Content }) ->
                     'Etag' -> [{etag, erlazure_xml:parse_str(Elem)} | Properties];
                     'LeaseStatus' -> [{lease_status, erlang:list_to_atom(erlazure_xml:parse_str(Elem))} | Properties];
                     'LeaseState' -> [{lease_state, erlang:list_to_atom(erlazure_xml:parse_str(Elem))} | Properties];
+                    'LeaseDuration' -> [{lease_duration, erlang:list_to_atom(erlazure_xml:parse_str(Elem))} | Properties];
                     _ -> Properties
                   end
                 end,

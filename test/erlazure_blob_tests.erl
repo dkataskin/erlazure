@@ -40,8 +40,30 @@ parse_list_containers_response_test() ->
                 {ok, ParseResult} = erlazure_blob:parse_container_list(Response),
 
                 ?assertMatch({[#blob_container{
-                  name =  "cntr1",
-                  url = "https://strg1.blob.core.windows.net/cntr1",
-                  metadata = [],
-                  properties = [] }],
-                  [{next_marker, ""}]}, ParseResult).
+                                  name =  "cntr1",
+                                  url = "https://strg1.blob.core.windows.net/cntr1",
+                                  metadata = [
+                                    {'metadata-item-1', "value1"},
+                                    {'metadata-item-2', "value2"}],
+                                  properties = [
+                                    {last_modified, "Thu, 01 May 2014 06:20:08 GMT"},
+                                    {etag, "\"0x8D1331C88F47AF1\""},
+                                    {lease_status, unlocked},
+                                    {lease_state, available}]
+                               },
+                               #blob_container{
+                                 name =  "cntr2",
+                                 url = "https://strg1.blob.core.windows.net/cntr2",
+                                 metadata = [],
+                                 properties = [
+                                   {last_modified, "Thu, 01 May 2014 06:20:16 GMT"},
+                                   {etag, "\"0x8D1331C8DB0C279\""},
+                                   {lease_status, unlocked},
+                                   {lease_state, leased},
+                                   {lease_duration, infinite}]
+                               }
+                              ],
+                              [{prefix, "tstprefix"},
+                                {marker, "mrkr12344321"},
+                                {max_results, 255},
+                                {next_marker, ""}]}, ParseResult).

@@ -49,10 +49,10 @@ parse_list(ParseFun, List) ->
 
 parse_metadata(#xmlElement { content = Content }) ->
             Nodes = erlazure_xml:filter_elements(Content),
-            lists:foldl(fun parse_metadata/2, [], Nodes).
-
-parse_metadata(Elem=#xmlElement{}, Items) ->
-            [{Elem#xmlElement.name, erlazure_xml:parse_str(Elem)} | Items].
+            FoldFun = fun(MetadataElem=#xmlElement{}, Metadata) ->
+                        [{MetadataElem#xmlElement.name, erlazure_xml:parse_str(MetadataElem)} | Metadata]
+                      end,
+            lists:reverse(lists:foldl(FoldFun, [], Nodes)).
 
 parse_common_tokens(Elem=#xmlElement{}, Tokens) ->
             case Elem#xmlElement.name of
