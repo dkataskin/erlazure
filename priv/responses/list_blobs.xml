@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<EnumerationResults ServiceEndpoint="http://myaccount.blob.core.windows.net/"  ContainerName="mycontainer">
+    <Prefix>prfx</Prefix>
+    <Marker>mrkr</Marker>
+    <MaxResults>154</MaxResults>
+    <Delimiter>dlmtr</Delimiter>
+    <Blobs>
+        <Blob>
+            <Name>blob-name</Name>
+            <Snapshot>date-time-value</Snapshot>
+            <Properties>
+                <Last-Modified>date-time-value</Last-Modified>
+                <Etag>etag</Etag>
+                <Content-Length>size-in-bytes</Content-Length>
+                <Content-Type>blob-content-type</Content-Type>
+                <Content-Encoding />
+                <Content-Language />
+                <Content-MD5 />
+                <Cache-Control />
+                <x-ms-blob-sequence-number>sequence-number</x-ms-blob-sequence-number>
+                <BlobType>BlockBlob|PageBlob</BlobType>
+                <LeaseStatus>locked|unlocked</LeaseStatus>
+                <LeaseState>available | leased | expired | breaking | broken</LeaseState>
+                <LeaseDuration>infinite | fixed</LeaseDuration>
+                <CopyId>id</CopyId>
+                <CopyStatus>pending | success | aborted | failed </CopyStatus>
+                <CopySource>source url</CopySource>
+                <CopyProgress>bytes copied/bytes total</CopyProgress>
+                <CopyCompletionTime>datetime</CopyCompletionTime>
+                <CopyStatusDescription>error string</CopyStatusDescription>
+            </Properties>
+            <Metadata>
+                <Name>value</Name>
+            </Metadata>
+        </Blob>
+        <BlobPrefix>
+            <Name>blob-prefix</Name>
+        </BlobPrefix>
+    </Blobs>
+    <NextMarker />
+</EnumerationResults>
