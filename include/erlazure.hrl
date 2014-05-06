@@ -38,6 +38,7 @@
 
 -define(queue_service_ver, "2012-02-12").
 -define(blob_service_ver, "2012-02-12").
+-define(table_service_ver, "2012-02-12").
 
 -ifndef(PRINT).
 -define(PRINT(Var), io:format("DEBUG: ~p:~p - ~p~n~n ~p~n~n", [?MODULE, ?LINE, ??Var, Var])).
@@ -46,13 +47,13 @@
 -record(service_context, {service, api_version, account, key}).
 
 -record(req_context, {method = get,
-                          address,
-                          path = "",
-                          parameters = [],
-                          content_type = "application/xml",
-                          content_length = 0,
-                          body = "",
-                          headers = []}).
+                      address,
+                      path = "",
+                      parameters = [],
+                      content_type = "application/xml",
+                      content_length = 0,
+                      body = "",
+                      headers = []}).
 
 -record(param_spec, {id,
                      type,

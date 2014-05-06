@@ -37,16 +37,24 @@
 -behaviour(gen_server).
 
 %% API
--export([start/2, list_queues/0, get_queue_acl/1, get_queue_acl/2, create_queue/1, create_queue/2,
+-export([start/2]).
+
+%% Queue API
+-export([list_queues/0, get_queue_acl/1, get_queue_acl/2, create_queue/1, create_queue/2,
          delete_queue/1, delete_queue/2, put_message/2, put_message/3, get_messages/1, get_messages/2,
          peek_messages/1, peek_messages/2, delete_message/3, delete_message/4, clear_messages/1,
-         clear_messages/2, update_message/3, update_message/4, list_containers/0, list_containers/1,
-         create_container/1, create_container/2, delete_container/1, delete_container/2,
-         lease_container/2, lease_container/3, list_blobs/1, list_blobs/2, put_block_blob/3,
+         clear_messages/2, update_message/3, update_message/4]).
+
+%% Blob API
+-export([list_containers/0, list_containers/1, create_container/1, create_container/2, delete_container/1,
+         delete_container/2, lease_container/2, lease_container/3, list_blobs/1, list_blobs/2, put_block_blob/3,
          put_block_blob/4, put_page_blob/3, put_page_blob/4, get_blob/2, get_blob/3, snapshot_blob/2,
          snapshot_blob/3, copy_blob/3, copy_blob/4, delete_blob/2, delete_blob/3, put_block/4,
          put_block/5, put_block_list/3, put_block_list/4, get_block_list/2, get_block_list/3,
          acquire_blob_lease/3, acquire_blob_lease/4, acquire_blob_lease/5]).
+
+%% Table API
+-export([get_tables/0, get_tables/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -199,6 +207,16 @@ lease_container(Name, Mode) when is_atom(Mode) ->
             lease_container(Name, Mode, []).
 lease_container(Name, Mode, Options) when is_atom(Mode) ->
             gen_server:call(?MODULE, {lease_container, Name, Mode, Options}).
+
+%%====================================================================
+%% Table
+%%====================================================================
+
+get_tables() ->
+            get_tables([]).
+
+get_tables(Options) ->
+            gen_server:call(?MODULE, {get_table_list, Options}).
 
 %%====================================================================
 %% gen_server callbacks
@@ -571,6 +589,20 @@ handle_call({acquire_blob_lease, Container, Blob, ProposedId, Duration, Options}
                                                     Options),
 
             {?http_created, _Body} = execute_request(ServiceContext, RequestContext),
+            {reply, {ok, acquired}, State};
+
+% List tables
+handle_call({get_table_list, Options}, _From, State) ->
+            ServiceContext = create_service_context(?table_service, State),
+            Parameters = [],
+            RequestContext = create_request_context(?table_service,
+                                                    State,
+                                                    get,
+                                                    "Tables",
+                                                    Parameters,
+                                                    Options),
+
+            {?http_created, Body} = execute_request(ServiceContext, RequestContext),
             {reply, {ok, acquired}, State}.
 
 handle_cast(_Msg, State) -> {noreply, State}.
@@ -586,150 +618,158 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 %%--------------------------------------------------------------------
 
 execute_request(ServiceContext = #service_context{}, RequestContext = #req_context{}) ->
-            Headers =  [{"x-ms-date", httpd_util:rfc1123_date()},
-                        {"x-ms-version", ServiceContext#service_context.api_version},
-                        {"Content-Type", RequestContext#req_context.content_type},
-                        {"Content-Length", integer_to_list(RequestContext#req_context.content_length)},
-                        {"Host", get_host(ServiceContext#service_context.service,
-                                          ServiceContext#service_context.account)}]
-                        ++ RequestContext#req_context.headers,
+                Headers =  [{"x-ms-date", httpd_util:rfc1123_date()},
+                            {"x-ms-version", ServiceContext#service_context.api_version},
+                            {"Content-Type", RequestContext#req_context.content_type},
+                            {"Content-Length", integer_to_list(RequestContext#req_context.content_length)},
+                            {"Host", get_host(ServiceContext#service_context.service,
+                                              ServiceContext#service_context.account)}]
+                            ++ RequestContext#req_context.headers,
 
-            AuthHeader = {"Authorization", get_shared_key(ServiceContext#service_context.service,
-                                                          ServiceContext#service_context.account,
-                                                          ServiceContext#service_context.key,
-                                                          RequestContext#req_context.method,
-                                                          RequestContext#req_context.path,
-                                                          RequestContext#req_context.parameters,
-                                                          Headers)},
+                AuthHeader = {"Authorization", get_shared_key(ServiceContext#service_context.service,
+                                                              ServiceContext#service_context.account,
+                                                              ServiceContext#service_context.key,
+                                                              RequestContext#req_context.method,
+                                                              RequestContext#req_context.path,
+                                                              RequestContext#req_context.parameters,
+                                                              Headers)},
 
-            %% Fiddler
-            %% httpc:set_options([{ proxy, {{"localhost", 9999}, []}}]),
+                %% Fiddler
+                %% httpc:set_options([{ proxy, {{"localhost", 9999}, []}}]),
 
-            Response = httpc:request(RequestContext#req_context.method,
-                                     erlazure_http:create_request(RequestContext, [AuthHeader | Headers]),
-                                     [{version, "HTTP/1.1"}],
-                                     [{sync, true}, {body_format, binary}, {headers_as_is, true}]),
-            case Response of
-              {ok, {{_, Code, _}, _, Body}}
-              when Code >= 200, Code =< 204 ->
-                   {Code, Body};
+                Response = httpc:request(RequestContext#req_context.method,
+                                         erlazure_http:create_request(RequestContext, [AuthHeader | Headers]),
+                                         [{version, "HTTP/1.1"}],
+                                         [{sync, true}, {body_format, binary}, {headers_as_is, true}]),
+                case Response of
+                  {ok, {{_, Code, _}, _, Body}}
+                  when Code >= 200, Code =< 204 ->
+                       {Code, Body};
 
-              {ok, {{_, _, _}, _, Body}} ->
-                   throw(Body)
-            end.
+                  {ok, {{_, _, _}, _, Body}} ->
+                       throw(Body)
+                end.
 
 get_shared_key(Service, Account, Key, HttpMethod, Path, Parameters, Headers) ->
-            SignatureString = erlazure_http:verb_to_str(HttpMethod) ++ "\n" ++
-                              get_headers_string(Service, Headers) ++
-                              canonicalize_headers(Headers) ++
-                              canonicalize_resource(Account, Path, Parameters),
+                SignatureString = erlazure_http:verb_to_str(HttpMethod) ++ "\n" ++
+                                  get_headers_string(Service, Headers) ++
+                                  canonicalize_headers(Headers) ++
+                                  canonicalize_resource(Account, Path, Parameters),
 
-            "SharedKey " ++ Account ++ ":" ++ base64:encode_to_string(sign_string(Key, SignatureString)).
+                "SharedKey " ++ Account ++ ":" ++ base64:encode_to_string(sign_string(Key, SignatureString)).
 
 get_headers_string(Service, Headers) ->
-            FoldFun = fun(HeaderName, Acc) ->
-              case lists:keyfind(HeaderName, 1, Headers) of
-                {HeaderName, Value} -> Acc ++ Value ++ "\n";
-                false -> Acc ++ "\n"
-              end
-            end,
-            lists:foldl(FoldFun, "", get_header_names(Service)).
+                FoldFun = fun(HeaderName, Acc) ->
+                  case lists:keyfind(HeaderName, 1, Headers) of
+                    {HeaderName, Value} -> Acc ++ Value ++ "\n";
+                    false -> Acc ++ "\n"
+                  end
+                end,
+                lists:foldl(FoldFun, "", get_header_names(Service)).
 
 sign_string(Key, StringToSign) ->
-            crypto:hmac(sha256, base64:decode(Key), StringToSign).
+                crypto:hmac(sha256, base64:decode(Key), StringToSign).
 
 build_uri_base(Service, Account) ->
-            "https://" ++ get_host(Service, Account) ++ "/".
+                "https://" ++ get_host(Service, Account) ++ "/".
 
 get_host(Service, Account) ->
-            Account ++ "." ++ erlang:atom_to_list(Service) ++ ".core.windows.net".
+                Account ++ "." ++ erlang:atom_to_list(Service) ++ ".core.windows.net".
 
 canonicalize_headers(Headers) ->
-            MS_Header_Names = [HeaderName || {HeaderName, _} <- Headers, string:str(HeaderName, "x-ms-") =:= 1],
-            Sorted_MS_Header_Names = lists:sort(MS_Header_Names),
-            FoldFun = fun(HeaderName, Acc) ->
-              {_, Value} = lists:keyfind(HeaderName, 1, Headers),
-              Acc ++ HeaderName ++ ":" ++ Value ++ "\n"
-            end,
-            lists:foldl(FoldFun, "", Sorted_MS_Header_Names).
+                MS_Header_Names = [HeaderName || {HeaderName, _} <- Headers, string:str(HeaderName, "x-ms-") =:= 1],
+                Sorted_MS_Header_Names = lists:sort(MS_Header_Names),
+                FoldFun = fun(HeaderName, Acc) ->
+                  {_, Value} = lists:keyfind(HeaderName, 1, Headers),
+                  Acc ++ HeaderName ++ ":" ++ Value ++ "\n"
+                end,
+                lists:foldl(FoldFun, "", Sorted_MS_Header_Names).
 
 canonicalize_resource(Account, Path, []) ->
-            "/" ++ Account ++ "/" ++ Path;
+                "/" ++ Account ++ "/" ++ Path;
 
 canonicalize_resource(Account, Path, Parameters) ->
-            SortFun = fun({ParamNameA, ParamValA}, {ParamNameB, ParamValB}) ->
-                        ParamNameA ++ ParamValA =< ParamNameB ++ ParamValB
-                     end,
-            SortedParameters = lists:sort(SortFun, Parameters),
-            [H | T] = SortedParameters,
-            "/" ++ Account ++ "/" ++ Path ++ combine_canonical_param(H, "", "", T).
+                SortFun = fun({ParamNameA, ParamValA}, {ParamNameB, ParamValB}) ->
+                            ParamNameA ++ ParamValA =< ParamNameB ++ ParamValB
+                         end,
+                SortedParameters = lists:sort(SortFun, Parameters),
+                [H | T] = SortedParameters,
+                "/" ++ Account ++ "/" ++ Path ++ combine_canonical_param(H, "", "", T).
 
 combine_canonical_param({Param, Value}, Param, Acc, []) ->
-            add_value(Value, Acc);
+                add_value(Value, Acc);
 
 combine_canonical_param({Param, Value}, _PreviousParam, Acc, []) ->
-            add_param_value(Param, Value, Acc);
+                add_param_value(Param, Value, Acc);
 
 combine_canonical_param({Param, Value}, Param, Acc, ParamList) ->
-            [H | T] = ParamList,
-            combine_canonical_param(H, Param, add_value(Value, Acc), T);
+                [H | T] = ParamList,
+                combine_canonical_param(H, Param, add_value(Value, Acc), T);
 
 combine_canonical_param({Param, Value}, _PreviousParam, Acc, ParamList) ->
-            [H | T] = ParamList,
-            combine_canonical_param(H, Param, add_param_value(Param, Value, Acc), T).
+                [H | T] = ParamList,
+                combine_canonical_param(H, Param, add_param_value(Param, Value, Acc), T).
 
 add_param_value(Param, Value, Acc) ->
-            Acc ++ "\n" ++ string:to_lower(Param) ++ ":" ++ Value.
+                Acc ++ "\n" ++ string:to_lower(Param) ++ ":" ++ Value.
 
 add_value(Value, Acc) ->
-            Acc ++ "," ++ Value.
+                Acc ++ "," ++ Value.
 
 get_header_names(?blob_service) ->
-            get_header_names(?queue_service);
+                get_header_names(?queue_service);
 
-get_header_names(?queue_service) -> ["Content-Encoding",
-                                     "Content-Language",
-                                     "Content-Length",
-                                     "Content-MD5",
-                                     "Content-Type",
-                                     "Date",
-                                     "If-Modified-Since",
-                                     "If-Match",
-                                     "If-None-Match",
-                                     "If-Unmodified-Since",
-                                     "Range"];
+get_header_names(?queue_service) ->
+                ["Content-Encoding",
+                 "Content-Language",
+                 "Content-Length",
+                 "Constent-MD5",
+                 "Content-Type",
+                 "Date",
+                 "If-Modified-Since",
+                 "If-Match",
+                 "If-None-Match",
+                 "If-Unmodified-Since",
+                 "Range"];
 
-get_header_names(?table_service) -> ["Content-MD5",
-                                     "Content-Type",
-                                     "Date"].
+get_header_names(?table_service) ->
+                ["Content-MD5",
+                 "Content-Type",
+                 "Date"].
 
 create_service_context(?queue_service, State=#state{}) ->
-            #service_context{service = ?queue_service,
-                             api_version = ?queue_service_ver,
-                             account = State#state.account,
-                             key = State#state.key};
+                #service_context{service = ?queue_service,
+                                 api_version = ?queue_service_ver,
+                                 account = State#state.account,
+                                 key = State#state.key};
 
 create_service_context(?blob_service, State=#state{}) ->
-            #service_context{service = ?blob_service,
-                             api_version = ?blob_service_ver,
-                             account = State#state.account,
-                             key = State#state.key}.
+                #service_context{service = ?blob_service,
+                                 api_version = ?blob_service_ver,
+                                 account = State#state.account,
+                                 key = State#state.key};
+
+create_service_context(?table_service, State=#state{}) ->
+                #service_context{service = ?table_service,
+                                 api_version = ?table_service_ver,
+                                 account = State#state.account,
+                                 key = State#state.key}.
 
 create_request_context(Service, State=#state{}, Parameters, Options) ->
-            create_request_context(Service, State, "", Parameters, Options).
+                create_request_context(Service, State, "", Parameters, Options).
 
 create_request_context(Service, State=#state{}, Path, Parameters, Options) ->
-            create_request_context(Service, State, get, Path, Parameters, Options).
+                create_request_context(Service, State, get, Path, Parameters, Options).
 
 create_request_context(Service, State=#state{}, Method, Path, Parameters, Options) ->
-            create_request_context(Service, State, Method, Path, [], Parameters, Options).
+                create_request_context(Service, State, Method, Path, [], Parameters, Options).
 
 create_request_context(Service, State=#state{}, Method, Path, Body, Parameters, Options) ->
-            ParameterCombinedList = Parameters ++ Options,
-            RequestParameters = get_request_uri_params(ParameterCombinedList, State#state.param_specs),
-            RequestHeaders = get_request_headers(ParameterCombinedList, State#state.param_specs),
+                ParameterCombinedList = Parameters ++ Options,
+                RequestParameters = get_request_uri_params(ParameterCombinedList, State#state.param_specs),
+                RequestHeaders = get_request_headers(ParameterCombinedList, State#state.param_specs),
 
-            #req_context{address = build_uri_base(Service, State#state.account),
+                #req_context{address = build_uri_base(Service, State#state.account),
                              path = Path,
                              method = Method,
                              body = Body,
@@ -738,37 +778,37 @@ create_request_context(Service, State=#state{}, Method, Path, Body, Parameters, 
                              headers = RequestHeaders}.
 
 get_request_headers(Params, ParamSpecs) ->
-            get_request_params(Params, ParamSpecs, header).
+                get_request_params(Params, ParamSpecs, header).
 
 get_request_uri_params(Params, ParamSpecs) ->
-            get_request_params(Params, ParamSpecs, uri).
+                get_request_params(Params, ParamSpecs, uri).
 
 get_request_params(Params, ParamSpecs, Type) ->
-            ParamDefs = orddict:filter(fun(_, Value) -> Value#param_spec.type =:= Type end, ParamSpecs),
-            FoldFun = fun({_ParamName, ""}, Acc) ->
-                          Acc;
+                ParamDefs = orddict:filter(fun(_, Value) -> Value#param_spec.type =:= Type end, ParamSpecs),
+                FoldFun = fun({_ParamName, ""}, Acc) ->
+                              Acc;
 
-                          ({ParamName, ParamValue}, Acc) ->
-                            case orddict:find(ParamName, ParamDefs) of
-                              {ok, Value} -> [{Value#param_spec.name, (Value#param_spec.parse_fun)(ParamValue)} | Acc];
-                              error -> Acc
-                            end
-                      end,
-            lists:foldl(FoldFun, [], Params).
+                              ({ParamName, ParamValue}, Acc) ->
+                                case orddict:find(ParamName, ParamDefs) of
+                                  {ok, Value} -> [{Value#param_spec.name, (Value#param_spec.parse_fun)(ParamValue)} | Acc];
+                                  error -> Acc
+                                end
+                          end,
+                lists:foldl(FoldFun, [], Params).
 
 get_request_param_specs() ->
-            ProcessFun = fun(Spec=#param_spec{}, Dictionary) ->
-                            orddict:store(Spec#param_spec.id, Spec, Dictionary)
-                        end,
+                ProcessFun = fun(Spec=#param_spec{}, Dictionary) ->
+                                orddict:store(Spec#param_spec.id, Spec, Dictionary)
+                            end,
 
-            CommonParamSpecs = lists:foldl(ProcessFun, orddict:new(), get_request_common_param_specs()),
-            BlobParamSpecs = lists:foldl(ProcessFun, CommonParamSpecs, erlazure_blob:get_request_param_specs()),
+                CommonParamSpecs = lists:foldl(ProcessFun, orddict:new(), get_request_common_param_specs()),
+                BlobParamSpecs = lists:foldl(ProcessFun, CommonParamSpecs, erlazure_blob:get_request_param_specs()),
 
-            lists:foldl(ProcessFun, BlobParamSpecs, erlazure_queue:get_request_param_specs()).
+                lists:foldl(ProcessFun, BlobParamSpecs, erlazure_queue:get_request_param_specs()).
 
 get_request_common_param_specs() ->
-            [#param_spec{ id = comp, type = uri, name = "comp" },
-             #param_spec{ id = timeout, type = uri, name = "timeout" },
-             #param_spec{ id = max_results, type = uri, name = "maxresults" },
-             #param_spec{ id = prefix, type = uri, name = "prefix" },
-             #param_spec{ id = marker, type = uri, name = "marker" }].
+                [#param_spec{ id = comp, type = uri, name = "comp" },
+                 #param_spec{ id = timeout, type = uri, name = "timeout" },
+                 #param_spec{ id = max_results, type = uri, name = "maxresults" },
+                 #param_spec{ id = prefix, type = uri, name = "prefix" },
+                 #param_spec{ id = marker, type = uri, name = "marker" }].
