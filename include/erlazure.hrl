@@ -59,6 +59,9 @@
                      name,
                      parse_fun = fun(Value) -> lists:flatten(io_lib:format("~p", [Value])) end}).
 
+-record(property_spec, {name,
+                        key,
+                        parse_fun = fun(Elem) -> erlazure_xml:parse_str(Elem) end}).
 % Queue
 -record(queue, {name="",
                 url="",
@@ -98,18 +101,8 @@
                           status_description=""}).
 
 -record(cloud_blob, {name="",
-                     snapshot="",
                      url="",
-                     last_modified="",
-                     etag="",
-                     content_length=0,
-                     content_type="",
-                     content_encoding="",
-                     content_language="",
-                     content_md5="",
-                     cache_control="",
-                     type,
-                     copy,
+                     properties=[],
                      metadata=[]}).
 
 -record(blob_block_ref, {id="", type=undefined}).

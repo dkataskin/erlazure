@@ -624,8 +624,6 @@ get_shared_key(Service, Account, Key, HttpMethod, Path, Parameters, Headers) ->
                               canonicalize_headers(Headers) ++
                               canonicalize_resource(Account, Path, Parameters),
 
-            %% ?PRINT(SignatureString),
-
             "SharedKey " ++ Account ++ ":" ++ base64:encode_to_string(sign_string(Key, SignatureString)).
 
 get_headers_string(Service, Headers) ->

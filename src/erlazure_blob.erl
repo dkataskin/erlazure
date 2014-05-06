@@ -70,6 +70,28 @@ parse_container_properties(#xmlElement { content = Content }) ->
                 end,
                 lists:reverse(lists:foldl(FoldFun, [], Nodes)).
 
+parse_blob_properties(#xmlElement { content = Content }) ->
+                Nodes = erlazure_xml:filter_elements(Content),
+                FoldFun = fun(Elem=#xmlElement{}, Properties) ->
+                  case Elem#xmlElement.name of
+                    'Last-Modified' -> [{last_modified, erlazure_xml:parse_str(Elem)} | Properties];
+                    'Etag' -> [{etag, erlazure_xml:parse_str(Elem)} | Properties];
+                    'Content-Length' -> [{content_length, erlazure_xml:parse_int(Elem)} | Properties];
+                    'Content-Type' -> [{content_type, erlazure_xml:parse_str(Elem)} | Properties];
+                    'Content-Encoding' -> [{content_encoding, erlazure_xml:parse_str(Elem)} | Properties];
+                    'Content-Language' -> [{content_language, erlazure_xml:parse_str(Elem)} | Properties];
+                    'Content-MD5' -> [{content_md5, erlazure_xml:parse_str(Elem)} | Properties];
+                    'Cache-Control' -> [{cache_control, erlazure_xml:parse_str(Elem)} | Properties];
+                    'x-ms-blob-sequence-number' -> [{sequence_number, erlazure_xml:parse_str(Elem)} | Properties];
+                    'BlobType' -> [{blob_type, str_to_blob_type(erlazure_xml:parse_str(Elem))} | Properties];
+                    'LeaseStatus' -> [{lease_status, erlang:list_to_atom(erlazure_xml:parse_str(Elem))} | Properties];
+                    'LeaseState' -> [{lease_state, erlang:list_to_atom(erlazure_xml:parse_str(Elem))} | Properties];
+                    'LeaseDuration' -> [{lease_duration, erlang:list_to_atom(erlazure_xml:parse_str(Elem))} | Properties]
+                  end
+                end,
+                lists:foldl(FoldFun, [], Nodes).
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 parse_blob_list(Blobs) ->
                 erlazure_xml:parse_list(fun parse_blob/1, Blobs).
@@ -93,18 +115,18 @@ parse_blob({"Blob", _, Elements}) ->
 
                 #cloud_blob{
                   name = erlazure_xml:get_element_text("Name", Elements),
-                  url = erlazure_xml:get_element_text("Url", Elements),
-                  last_modified = erlazure_xml:get_element_text("Last-Modified", Properties),
-                  etag = erlazure_xml:get_element_text("ETag", Properties),
-                  content_length = list_to_integer(erlazure_xml:get_element_text("Content-Length", Properties)),
-                  content_type = erlazure_xml:get_element_text("Content-Type", Properties),
-                  content_encoding = erlazure_xml:get_element_text("Content-Encoding", Properties),
-                  content_language = erlazure_xml:get_element_text("Content-Language", Properties),
-                  content_md5 = erlazure_xml:get_element_text("Content-MD5", Properties),
-                  cache_control = erlazure_xml:get_element_text("Cache-Control", Properties),
-                  type = str_to_blob_type(erlazure_xml:get_element_text("BlobType", Properties)),
-                  copy = parse_copy_state(Properties),
-                  metadata = erlazure_xml:parse_metadata(Elements)
+                  url = erlazure_xml:get_element_text("Url", Elements)%,
+                  %last_modified = erlazure_xml:get_element_text("Last-Modified", Properties),
+                  %etag = erlazure_xml:get_element_text("ETag", Properties),
+                  %content_length = list_to_integer(erlazure_xml:get_element_text("Content-Length", Properties)),
+                  %content_type = erlazure_xml:get_element_text("Content-Type", Properties),
+                  %content_encoding = erlazure_xml:get_element_text("Content-Encoding", Properties),
+                  %content_language = erlazure_xml:get_element_text("Content-Language", Properties),
+                  %content_md5 = erlazure_xml:get_element_text("Content-MD5", Properties),
+                  %cache_control = erlazure_xml:get_element_text("Cache-Control", Properties),
+                  %type = str_to_blob_type(erlazure_xml:get_element_text("BlobType", Properties)),
+                  %copy = parse_copy_state(Properties),
+                  %metadata = erlazure_xml:parse_metadata(Elements)
                 }.
 
 parse_block({"Block", _, Elements}, Type) ->
@@ -155,6 +177,24 @@ get_request_body(BlockRefs) ->
                           end,
                 Data = {'BlockList', [], lists:reverse(lists:foldl(FoldFun, [], BlockRefs))},
                 lists:flatten(xmerl:export_simple([Data], xmerl_xml)).
+
+parse_lease_properties(Elem=#xmlElement{}) ->
+                erlang:list_to_atom(erlazure_xml:parse_str(Elem)).
+
+get_blob_property_specs() ->
+                [#property_spec{ name = last_modified, key = 'Last-Modified' },
+                 #property_spec{ name = etag, key = 'Etag' },
+                 #property_spec{ name = content_length, key = 'Content-Length' },
+                 #property_spec{ name = content_type, key = 'Content-Type' },
+                 #property_spec{ name = content_encoding, key = 'Content-Encoding' },
+                 #property_spec{ name = content_language, key = 'Content-Language' },
+                 #property_spec{ name = content_md5, key = 'Content-MD5' },
+                 #property_spec{ name = cache_control, key = 'Cache-Control' },
+                 #property_spec{ name = sequence_number, key = 'x-ms-blob-sequence-number' },
+                 #property_spec{ name = blob_type, key = 'BlobType', parse_fun = fun(Elem=#xmlElement{}) -> str_to_blob_type(erlazure_xml:parse_str(Elem)) end },
+                 #property_spec{ name = lease_status, key = 'LeaseStatus', parse_fun = fun parse_lease_properties/1 },
+                 #property_spec{ name = lease_state, key = 'LeaseState', parse_fun = fun parse_lease_properties/1 },
+                 #property_spec{ name = lease_duration, key = 'LeaseDuration', parse_fun = fun parse_lease_properties/1 }].
 
 get_request_param_specs() ->
                 [#param_spec{ id = block_list_type, type = uri, name = "blocklisttype" },
