@@ -43,6 +43,9 @@
 parse_container_list(Response) ->
                 erlazure_xml:parse_enumeration(Response, {'Containers', 'Container', fun parse_container_response/1}).
 
+parse_blob_list(Response) ->
+                erlazure_xml:parse_enumeration(Response, {'Blobs', 'Blob', fun parse_blob_properties/1}).
+
 parse_container_response(#xmlElement { content = Content }) ->
                 Nodes = erlazure_xml:filter_elements(Content),
                 FoldFun = fun(Elem=#xmlElement{}, Container=#blob_container{}) ->
@@ -70,6 +73,19 @@ parse_container_properties(#xmlElement { content = Content }) ->
                 end,
                 lists:reverse(lists:foldl(FoldFun, [], Nodes)).
 
+parse_blob_response(#xmlElement { content = Content }) ->
+                Nodes = erlazure_xml:filter_elements(Content),
+                FoldFun = fun(Elem=#xmlElement{}, Blob=#cloud_blob{}) ->
+                  case Elem#xmlElement.name of
+                    'Name' -> Blob#cloud_blob { name = erlazure_xml:parse_str(Elem) };
+                    'Url' -> Blob#cloud_blob { url = erlazure_xml:parse_str(Elem) };
+                    'Metadata' -> Blob#cloud_blob { metadata = erlazure_xml:parse_metadata(Elem) };
+                    'Properties' -> Blob#cloud_blob { properties = parse_blob_properties(Elem) };
+                    _ -> Blob
+                  end
+                end,
+                lists:foldl(FoldFun, #blob_container{}, Nodes).
+
 parse_blob_properties(#xmlElement { content = Content }) ->
                 Nodes = erlazure_xml:filter_elements(Content),
                 FoldFun = fun(Elem=#xmlElement{}, Properties) ->
@@ -93,9 +109,6 @@ parse_blob_properties(#xmlElement { content = Content }) ->
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-parse_blob_list(Blobs) ->
-                erlazure_xml:parse_list(fun parse_blob/1, Blobs).
-
 parse_block_list(Blocks) ->
                 io:format("~p~n", [Blocks]),
                 Committed = parse_block_list("CommittedBlocks", committed, Blocks),
@@ -184,7 +197,7 @@ parse_lease_properties(Elem=#xmlElement{}) ->
 get_blob_property_specs() ->
                 [#property_spec{ name = last_modified, key = 'Last-Modified' },
                  #property_spec{ name = etag, key = 'Etag' },
-                 #property_spec{ name = content_length, key = 'Content-Length' },
+                 #property_spec{ name = content_length, key = 'Content-Length', parse_fun = fun erlazure_xml:parse_int/1 },
                  #property_spec{ name = content_type, key = 'Content-Type' },
                  #property_spec{ name = content_encoding, key = 'Content-Encoding' },
                  #property_spec{ name = content_language, key = 'Content-Language' },

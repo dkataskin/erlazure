@@ -63,6 +63,11 @@
 -record(property_spec, {name,
                         key,
                         parse_fun = fun(Elem) -> erlazure_xml:parse_str(Elem) end}).
+
+-record(enum_parser_spec, {rootKey,
+                           elementKey,
+                           elementParser,
+                           customParsers=[]}).
 % Queue
 -record(queue, {name="",
                 url="",

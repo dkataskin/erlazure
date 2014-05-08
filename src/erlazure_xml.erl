@@ -63,35 +63,51 @@ parse_common_tokens(Elem=#xmlElement{}, Tokens) ->
               _ -> Tokens
             end.
 
-parse_enumeration(Response, ParseParams) when is_binary(Response) ->
-            parse_enumeration(erlang:binary_to_list(Response), ParseParams);
+parse_enumeration(Response, ParserSpec=#enum_parser_spec{}) when is_binary(Response) ->
+            parse_enumeration(erlang:binary_to_list(Response), ParserSpec);
 
-parse_enumeration(Response, ParseParams) when is_list(Response) ->
+parse_enumeration(Response, ParserSpec=#enum_parser_spec{}) when is_list(Response) ->
             {ParseResult, _} = xmerl_scan:string(Response),
-            erlazure_xml:parse_enumeration(ParseResult, ParseParams);
+            erlazure_xml:parse_enumeration(ParseResult, ParserSpec);
 
-parse_enumeration(Elem=#xmlElement{}, ParseParams) ->
+parse_enumeration(Elem=#xmlElement{}, ParserSpec=#enum_parser_spec{}) ->
             case Elem#xmlElement.name of
               'EnumerationResults' ->
                 Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
                 CommonTokens = lists:foldl(fun parse_common_tokens/2, [], Nodes),
-                FoldFun = fun(Item, Acc) -> parse_list(Item, Acc, ParseParams) end,
+                FoldFun = fun(Item, Acc) -> parse_list(Item, Acc, ParserSpec) end,
                 Items = lists:foldl(FoldFun, [], Nodes),
                 {ok, {lists:reverse(Items), lists:reverse(CommonTokens)}};
 
               _ -> {error, bad_response}
             end.
 
-parse_list(Elem=#xmlElement{}, PropListItems, {Root, Node, ParseFun}) ->
+parse_list(Elem=#xmlElement{}, PropListItems, ParserSpec=#enum_parser_spec{}) ->
+            Root = ParserSpec#enum_parser_spec.rootKey,
+            Node = ParserSpec#enum_parser_spec.elementKey,
+            Parser = ParserSpec#enum_parser_spec.elementParser,
+            CustomParsers = ParserSpec#enum_parser_spec.customParsers,
             case Elem#xmlElement.name of
               Root ->
                 Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
-                FoldFun = fun(Item, Acc) -> parse_list(Item, Acc, {Root, Node, ParseFun}) end,
+                FoldFun = fun(Item, Acc) -> parse_list(Item, Acc, ParserSpec) end,
                 lists:foldl(FoldFun, [], Nodes);
 
-              Node -> [ParseFun(Elem) | PropListItems];
+              Node ->
+                [Parser(Elem) | PropListItems];
 
-              _ -> PropListItems
+              Key ->
+                case CustomParsers of
+                  [] ->
+                    PropListItems;
+                  CustomParsers ->
+                    case proplists:lookup(Key, CustomParsers) of
+                      {_, CustomParser} ->
+                        [CustomParser(Elem) | PropListItems];
+                      _ ->
+                        PropListItems
+                    end
+                end
             end.
 
 filter_elements(XmlNodes) ->

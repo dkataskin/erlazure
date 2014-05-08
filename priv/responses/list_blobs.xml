@@ -60,7 +60,7 @@
                 <CopyStatusDescription>copy status</CopyStatusDescription>
             </Properties>
             <Metadata>
-                <Name>blb1</Name>
+                <Name>blb2</Name>
             </Metadata>
         </Blob>
         <BlobPrefix>

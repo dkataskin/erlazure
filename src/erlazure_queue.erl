@@ -70,7 +70,10 @@ parse_queue_mesage(Elem=#xmlElement{}, Message=#queue_message{}) ->
           end.
 
 parse_queue_list(Response) ->
-          erlazure_xml:parse_enumeration(Response, {'Queues', 'Queue', fun parse_queue_response/1}).
+          ParserSpec = #enum_parser_spec { rootKey = 'Queues',
+                                           elementKey = 'Queue',
+                                           elementParser = fun parse_queue_response/1 },
+          erlazure_xml:parse_enumeration(Response, ParserSpec).
 
 parse_queue_response(#xmlElement { content = Content }) ->
           Nodes = erlazure_xml:filter_elements(Content),
