@@ -41,10 +41,16 @@
          get_request_param_specs/0]).
 
 parse_container_list(Response) ->
-                erlazure_xml:parse_enumeration(Response, {'Containers', 'Container', fun parse_container_response/1}).
+                ParserSpec = #enum_parser_spec { rootKey = 'Containers',
+                                                 elementKey = 'Container',
+                                                 elementParser = fun parse_container_response/1 },
+                erlazure_xml:parse_enumeration(Response, ParserSpec).
 
 parse_blob_list(Response) ->
-                erlazure_xml:parse_enumeration(Response, {'Blobs', 'Blob', fun parse_blob_properties/1}).
+                ParserSpec = #enum_parser_spec { rootKey = 'Blobs',
+                                                 elementKey = 'Blob',
+                                                 elementParser = fun parse_blob_response/1 },
+                erlazure_xml:parse_enumeration(Response, ParserSpec).
 
 parse_container_response(#xmlElement { content = Content }) ->
                 Nodes = erlazure_xml:filter_elements(Content),
