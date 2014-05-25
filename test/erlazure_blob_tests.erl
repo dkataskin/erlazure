@@ -67,3 +67,6 @@ parse_list_containers_response_test() ->
                                 {marker, "mrkr12344321"},
                                 {max_results, 255},
                                 {next_marker, ""}]}, ParseResult).
+
+parse_list_blobs_response_test() ->
+                ok.
