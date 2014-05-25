@@ -9,7 +9,7 @@
 %% * Redistributions in binary form must reproduce the above copyright
 %% notice, this list of conditions and the following disclaimer in the
 %% documentation and/or other materials provided with the distribution.
-%% * Neither the name of  nor the names of its contributors may be used to
+%% * Neither the name of erlazure nor the names of its contributors may be used to
 %% endorse or promote products derived from this software without specific
 %% prior written permission.
 %%
@@ -31,6 +31,8 @@
 -include("erlazure.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
+-record(parse_enum_acc, { items=[], misc=[], custom=[], spec = #enum_parser_spec{} }).
+
 %% API
 -export([get_element_text/2, parse_metadata/1, parse_list/2, parse_enumeration/2, filter_elements/1, get_text/1,
          parse_str/1, parse_int/1]).
@@ -41,11 +43,11 @@ get_element_text(ElementName, Elements) when is_list(ElementName), is_list(Eleme
               false -> ""
             end.
 
-parse_list(ParseFun, List) ->
-            FoldFun = fun(Element, Acc) ->
-              [ParseFun(Element) | Acc]
-            end,
-            lists:reverse(lists:foldl(FoldFun, [], List)).
+%parse_list(ParseFun, List) ->
+%            FoldFun = fun(Element, Acc) ->
+%              [ParseFun(Element) | Acc]
+%            end,
+%            lists:reverse(lists:foldl(FoldFun, [], List)).
 
 parse_metadata(#xmlElement { content = Content }) ->
             Nodes = erlazure_xml:filter_elements(Content),
@@ -71,41 +73,50 @@ parse_enumeration(Response, ParserSpec=#enum_parser_spec{}) when is_list(Respons
             erlazure_xml:parse_enumeration(ParseResult, ParserSpec);
 
 parse_enumeration(Elem=#xmlElement{}, ParserSpec=#enum_parser_spec{}) ->
+            ParseAcc = #parse_enum_acc{ spec = ParserSpec },
+
             case Elem#xmlElement.name of
               'EnumerationResults' ->
                 Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
-                CommonTokens = lists:foldl(fun parse_common_tokens/2, [], Nodes),
-                FoldFun = fun(Item, Acc) -> parse_list(Item, Acc, ParserSpec) end,
-                Items = lists:foldl(FoldFun, [], Nodes),
-                {ok, {lists:reverse(Items), lists:reverse(CommonTokens)}};
+                ParseAcc1 = ParseAcc#parse_enum_acc { misc = lists:foldl(fun parse_common_tokens/2, [], Nodes) },
+
+                ParseAcc2 = lists:foldl(fun parse_list/2, ParseAcc1, Nodes),
+
+                Items = lists:reverse(ParseAcc2#parse_enum_acc.items),
+                Common = lists:reverse(ParseAcc2#parse_enum_acc.misc),
+                Custom = lists:reverse(ParseAcc2#parse_enum_acc.custom),
+                Misc = lists:append(Common, Custom),
+                {ok, {Items, Misc}};
 
               _ -> {error, bad_response}
             end.
 
-parse_list(Elem=#xmlElement{}, PropListItems, ParserSpec=#enum_parser_spec{}) ->
-            Root = ParserSpec#enum_parser_spec.rootKey,
-            Node = ParserSpec#enum_parser_spec.elementKey,
-            Parser = ParserSpec#enum_parser_spec.elementParser,
-            CustomParsers = ParserSpec#enum_parser_spec.customParsers,
+parse_list(Elem=#xmlElement{}, Acc=#parse_enum_acc{}) ->
+            Root = Acc#parse_enum_acc.spec#enum_parser_spec.rootKey,
+            Node = Acc#parse_enum_acc.spec#enum_parser_spec.elementKey,
+            Parser = Acc#parse_enum_acc.spec#enum_parser_spec.elementParser,
+            CustomParsers = Acc#parse_enum_acc.spec#enum_parser_spec.customParsers,
             case Elem#xmlElement.name of
               Root ->
                 Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
-                FoldFun = fun(Item, Acc) -> parse_list(Item, Acc, ParserSpec) end,
-                lists:foldl(FoldFun, [], Nodes);
+                lists:foldl(fun parse_list/2, Acc, Nodes);
 
               Node ->
-                [Parser(Elem) | PropListItems];
+                Items = Acc#parse_enum_acc.items,
+                Acc#parse_enum_acc { items = [Parser(Elem) | Items] };
 
               Key ->
                 case CustomParsers of
                   [] ->
-                    PropListItems;
+                    Acc;
+
                   CustomParsers ->
                     case proplists:lookup(Key, CustomParsers) of
                       {_, CustomParser} ->
-                        [CustomParser(Elem) | PropListItems];
+                        CustomItems = Acc#parse_enum_acc.custom,
+                        Acc#parse_enum_acc { custom = [CustomParser(Elem) | CustomItems] };
                       _ ->
-                        PropListItems
+                        Acc
                     end
                 end
             end.
