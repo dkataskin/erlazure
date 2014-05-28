@@ -37,7 +37,7 @@
 
 %% API
 -export([parse_container_list/1, parse_blob_list/1, get_request_body/1, parse_block_list/1,
-         get_request_param_specs/0]).
+         get_request_param_specs/0, parse_blob_response/1]).
 
 parse_container_list(Response) ->
                 ParserSpec = #enum_parser_spec { rootKey = 'Containers',
