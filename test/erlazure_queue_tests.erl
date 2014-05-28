@@ -35,9 +35,6 @@
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
-%% API
--export([]).
-
 parse_list_queues_response_test() ->
                 Response = test_utils:read_file("list_queues.xml"),
                 {ok, ParseResult} = erlazure_queue:parse_queue_list(Response),

@@ -34,9 +34,6 @@
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
-%% API
--export([]).
-
 parse_list_containers_response_test() ->
                 Response = test_utils:read_file("list_containers.xml"),
                 {ok, ParseResult} = erlazure_blob:parse_container_list(Response),
