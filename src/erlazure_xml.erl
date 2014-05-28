@@ -43,12 +43,6 @@ get_element_text(ElementName, Elements) when is_list(ElementName), is_list(Eleme
               false -> ""
             end.
 
-%parse_list(ParseFun, List) ->
-%            FoldFun = fun(Element, Acc) ->
-%              [ParseFun(Element) | Acc]
-%            end,
-%            lists:reverse(lists:foldl(FoldFun, [], List)).
-
 parse_metadata(#xmlElement { content = Content }) ->
             Nodes = erlazure_xml:filter_elements(Content),
             FoldFun = fun(MetadataElem=#xmlElement{}, Metadata) ->
