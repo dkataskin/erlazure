@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<EnumerationResults>
+    <Prefix>prfx</Prefix>
+    <Marker>mrkr</Marker>
+    <MaxResults>154</MaxResults>
+    <Delimiter>dlmtr</Delimiter>
+    <Items>
+        <Item>
+            <Id>1</Id>
+            <Property1>Value1</Property1>
+        </Item>
+        <Item>
+            <Id>2</Id>
+            <Property1>Value2</Property1>
+        </Item>
+    </Items>
+    <NextMarker>ee948889-5a03-46dd-843a-22a7f12d7124</NextMarker>
+</EnumerationResults>

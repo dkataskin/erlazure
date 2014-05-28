@@ -86,7 +86,7 @@ parse_blob_response(#xmlElement { content = Content }) ->
                     'Snapshot' -> Blob#cloud_blob { snapshot = erlazure_xml:parse_str(Elem) };
                     'Url' -> Blob#cloud_blob { url = erlazure_xml:parse_str(Elem) };
                     'Metadata' -> Blob#cloud_blob { metadata = erlazure_xml:parse_metadata(Elem) };
-                    'Properties' -> Blob#cloud_blob { properties = parse_blob_properties(Elem) };
+                    'Properties' -> Blob#cloud_blob { properties = lists:reverse(parse_blob_properties(Elem)) };
                     _ -> Blob
                   end
                 end,
