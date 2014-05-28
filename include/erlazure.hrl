@@ -107,6 +107,7 @@
                           status_description=""}).
 
 -record(cloud_blob, {name="",
+                     snapshot="",
                      url="",
                      properties=[],
                      metadata=[]}).

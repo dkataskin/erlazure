@@ -26,8 +26,9 @@
 %% POSSIBILITY OF SUCH DAMAGE.
 
 -module(erlazure_blob_tests).
--compile(export_all).
 -author("Dmitry Kataskin").
+
+-compile(export_all).
 
 -include("erlazure.hrl").
 -include_lib("eunit/include/eunit.hrl").
@@ -40,7 +41,7 @@ parse_list_containers_response_test() ->
                 {ok, ParseResult} = erlazure_blob:parse_container_list(Response),
 
                 ?assertMatch({[#blob_container{
-                                  name =  "cntr1",
+                                  name = "cntr1",
                                   url = "https://strg1.blob.core.windows.net/cntr1",
                                   metadata = [
                                     {'metadata-item-1', "value1"},
@@ -52,7 +53,7 @@ parse_list_containers_response_test() ->
                                     {lease_state, available}]
                                },
                                #blob_container{
-                                 name =  "cntr2",
+                                 name = "cntr2",
                                  url = "https://strg1.blob.core.windows.net/cntr2",
                                  metadata = [],
                                  properties = [
@@ -69,4 +70,38 @@ parse_list_containers_response_test() ->
                                 {next_marker, ""}]}, ParseResult).
 
 parse_list_blobs_response_test() ->
-                ok.
+                Response = test_utils:read_file("list_blobs.xml"),
+                {ok, ParseResult} = erlazure_blob:parse_blob_list(Response),
+
+                ?assertMatch({[#cloud_blob{
+                                    name = "blb1.txt",
+                                    snapshot = "Mon, 05 May 2014 16:08:11 GMT",
+                                    url = "https://strg1.blob.core.windows.net/cntr1/blb1.txt",
+                                    properties = [
+                                      {last_modified, "Mon, 05 May 2014 16:08:11 GMT"},
+                                      {etag, "\"0x8D13693589FF293\""},
+                                      {content_length, 4},
+                                      {content_type, "text/plain"},
+                                      {content_encoding, ""},
+                                      {content_language, ""},
+                                      {content_md5, "CY9rzUYh03PK3k6DJie09g"},
+                                      {cache_control, ""},
+                                      {sequence_number, "13"},
+                                      {blob_type, block_blob},
+                                      {lease_status, locked},
+                                      {lease_state, leased},
+                                      {lease_duration, infinite},
+                                      {copy_id, "3d6a6a35-bc97-46e5-bb11-cb1b73a402b6"},
+                                      {copy_status, pending},
+                                      {copy_source, "https://strg1.blob.core.windows.net/cntr1/blb1.txt"},
+                                      {copy_progress, "104/5456"},
+                                      {copy_completion_time, "Mon, 05 May 2014 16:08:11 GMT"},
+                                      {copy_status_description, "copy status"}],
+                                    metadata = [{'Name', "blb1"}]
+                                  }
+                                  ],
+                                  [{prefix, "prfx"},
+                                    {marker, "mrkr"},
+                                    {max_results, 154},
+                                    {next_marker, ""},
+                                    {delimiter, "dlmtr"}]}, ParseResult).
