@@ -33,3 +33,31 @@
 -include("erlazure.hrl").
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
+
+
+parse_enumeration_test() ->
+                Response = test_utils:read_file("enumeration_result.xml"),
+                {ParseResult, _} = xmerl_scan:string(Response),
+
+                ParserSpec = #enum_parser_spec { rootKey = 'Items',
+                                                 elementKey = 'Item',
+                                                 elementParser = fun parse_test_item/1 },
+                {ok, Result} = erlazure_xml:parse_enumeration(ParseResult, ParserSpec),
+                ?assertMatch({[[{id, 1}, {property1, "Value1"}],
+                               [{id, 2}, {property1, "Value2"}]],
+                              [{prefix, "prfx"},
+                               {marker, "mrkr"},
+                               {max_results, 154},
+                               {delimiter, "dlmtr"},
+                               {next_marker, "ee948889-5a03-46dd-843a-22a7f12d7124"}]}, Result).
+
+parse_test_item(#xmlElement{ content = Content }) ->
+                Nodes = erlazure_xml:filter_elements(Content),
+                FoldFun = fun(Elem=#xmlElement{}, Acc) ->
+                  case Elem#xmlElement.name of
+                    'Id' -> [{id, erlazure_xml:parse_int(Elem)} | Acc];
+                    'Property1' -> [{property1, erlazure_xml:parse_str(Elem)} | Acc];
+                    _ -> Acc
+                  end
+                end,
+                lists:reverse(lists:foldl(FoldFun, [], Nodes)).

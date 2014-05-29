@@ -13,6 +13,7 @@
             <Id>2</Id>
             <Property1>Value2</Property1>
         </Item>
+        <CustomItem>CustomValue</CustomItem>
     </Items>
     <NextMarker>ee948889-5a03-46dd-843a-22a7f12d7124</NextMarker>
 </EnumerationResults>

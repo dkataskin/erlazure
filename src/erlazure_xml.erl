@@ -56,6 +56,7 @@ parse_common_tokens(Elem=#xmlElement{}, Tokens) ->
               'Marker' -> [{marker, erlazure_xml:parse_str(Elem)} | Tokens];
               'MaxResults' -> [{max_results, erlazure_xml:parse_int(Elem)} | Tokens];
               'NextMarker' -> [{next_marker, erlazure_xml:parse_str(Elem)} | Tokens];
+              'Delimiter' -> [{delimiter, erlazure_xml:parse_str(Elem)} | Tokens];
               _ -> Tokens
             end.
 
