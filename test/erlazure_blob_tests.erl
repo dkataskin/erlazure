@@ -41,9 +41,6 @@ parse_list_containers_response_test() ->
                 ?assertMatch({[#blob_container{
                                   name = "cntr1",
                                   url = "https://strg1.blob.core.windows.net/cntr1",
-                                  metadata = [
-                                    {'metadata-item-1', "value1"},
-                                    {'metadata-item-2', "value2"}],
                                   properties = [
                                     {last_modified, "Thu, 01 May 2014 06:20:08 GMT"},
                                     {etag, "\"0x8D1331C88F47AF1\""},
@@ -53,7 +50,6 @@ parse_list_containers_response_test() ->
                                #blob_container{
                                  name = "cntr2",
                                  url = "https://strg1.blob.core.windows.net/cntr2",
-                                 metadata = [],
                                  properties = [
                                    {last_modified, "Thu, 01 May 2014 06:20:16 GMT"},
                                    {etag, "\"0x8D1331C8DB0C279\""},
@@ -73,7 +69,31 @@ parse_blob_test() ->
                 BlobsNode = lists:keyfind('Blobs', 2, ParseResult#xmlElement.content),
                 Blob1 = lists:keyfind('Blob', 2, BlobsNode#xmlElement.content),
                 ParsedBlob1 = erlazure_blob:parse_blob_response(Blob1),
-                ?assertMatch(#cloud_blob{ name = "blb1.txt" }, ParsedBlob1).
+                ?PRINT(ParsedBlob1),
+                ?assertMatch(#cloud_blob{
+                                  name = "blb1.txt",
+                                  snapshot = "Mon, 05 May 2014 16:08:11 GMT",
+                                  url = "https://strg1.blob.core.windows.net/cntr1/blb1.txt",
+                                  properties = [
+                                    {last_modified, "Mon, 05 May 2014 16:08:11 GMT"},
+                                    {etag, "0x8D13693589FF293"},
+                                    {content_length, 4},
+                                    {content_type, "text/plain"},
+                                    {content_encoding, ""},
+                                    {content_language, ""},
+                                    {content_md5, "CY9rzUYh03PK3k6DJie09g=="},
+                                    {cache_control, ""},
+                                    {sequence_number, "13"},
+                                    {blob_type, block_blob},
+                                    {lease_status, locked},
+                                    {lease_state, leased},
+                                    {lease_duration, infinite},
+                                    {copy_id, "3d6a6a35-bc97-46e5-bb11-cb1b73a402b6"},
+                                    {copy_status, pending},
+                                    {copy_source, "https://strg1.blob.core.windows.net/cntr1/blb1.txt"},
+                                    {copy_progress, "104/5456"},
+                                    {copy_completion_time, "Mon, 05 May 2014 16:08:11 GMT"},
+                                    {copy_status_description, "copy status"}]}, ParsedBlob1).
 
 parse_list_blobs_response_test() ->
                 Response = test_utils:read_file("list_blobs.xml"),

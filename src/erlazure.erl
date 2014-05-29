@@ -369,14 +369,8 @@ handle_call({list_containers, Options}, _From, State) ->
                                                     Options),
 
             {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
-            {ok, {_, _, Elements}, _} = erlsom:simple_form(Body),
-
-            case lists:keyfind("Containers", 1, Elements) of
-              {"Containers", _, ContainerListElement} ->
-                {reply, erlazure_blob:parse_container_list(ContainerListElement), State};
-              false ->
-                {reply, [], State}
-            end;
+            {ok, Containers} = erlazure_blob:parse_container_list(Body),
+            {reply, Containers, State};
 
 % Create a container
 handle_call({create_container, Name, Options}, _From, State) ->
@@ -434,14 +428,8 @@ handle_call({list_blobs, Name, Options}, _From, State) ->
                                                     Options),
 
             {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
-            {ok, {_, _, Elements}, _} = erlsom:simple_form(Body),
-
-            case lists:keyfind("Blobs", 1, Elements) of
-              {"Blobs", _, BlobListElement} ->
-                {reply, erlazure_blob:parse_blob_list(BlobListElement), State};
-              false ->
-                {reply, [], State}
-            end;
+            {ok, Blobs} = erlazure_blob:parse_blob_list(Body),
+            {reply, Blobs, State};
 
 % Put block blob
 handle_call({put_blob, Container, Name, Type = block_blob, Data, Options}, _From, State) ->
@@ -602,7 +590,7 @@ handle_call({get_table_list, Options}, _From, State) ->
                                                     Parameters,
                                                     Options),
 
-            {?http_created, Body} = execute_request(ServiceContext, RequestContext),
+            {?http_created, _Body} = execute_request(ServiceContext, RequestContext),
             {reply, {ok, acquired}, State}.
 
 handle_cast(_Msg, State) -> {noreply, State}.
