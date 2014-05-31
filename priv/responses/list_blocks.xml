@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<BlockList>
+    <CommittedBlocks>
+        <Block>
+            <Name>BlockId001</Name>
+            <Size>4194304</Size>
+        </Block>
+        <Block>
+            <Name>BlockId002</Name>
+            <Size>4194304</Size>
+        </Block>
+    </CommittedBlocks>
+    <UncommittedBlocks>
+        <Block>
+            <Name>BlockId003</Name>
+            <Size>4194304</Size>
+        </Block>
+        <Block>
+            <Name>BlockId004</Name>
+            <Size>1024000</Size>
+        </Block>
+    </UncommittedBlocks>
+</BlockList>
