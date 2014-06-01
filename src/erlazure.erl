@@ -40,21 +40,36 @@
 -export([start/2]).
 
 %% Queue API
--export([list_queues/0, get_queue_acl/1, get_queue_acl/2, create_queue/1, create_queue/2,
-         delete_queue/1, delete_queue/2, put_message/2, put_message/3, get_messages/1, get_messages/2,
-         peek_messages/1, peek_messages/2, delete_message/3, delete_message/4, clear_messages/1,
-         clear_messages/2, update_message/3, update_message/4]).
+-export([list_queues/1, list_queues/2]).
+-export([get_queue_acl/2, get_queue_acl/3]).
+-export([create_queue/2, create_queue/3]).
+-export([delete_queue/2, delete_queue/3]).
+-export([put_message/3, put_message/4]).
+-export([get_messages/2, get_messages/3]).
+-export([peek_messages/2, peek_messages/3]).
+-export([delete_message/4, delete_message/5]).
+-export([clear_messages/2, clear_messages/3]).
+-export([update_message/4, update_message/5]).
 
 %% Blob API
--export([list_containers/0, list_containers/1, create_container/1, create_container/2, delete_container/1,
-         delete_container/2, lease_container/2, lease_container/3, list_blobs/1, list_blobs/2, put_block_blob/3,
-         put_block_blob/4, put_page_blob/3, put_page_blob/4, get_blob/2, get_blob/3, snapshot_blob/2,
-         snapshot_blob/3, copy_blob/3, copy_blob/4, delete_blob/2, delete_blob/3, put_block/4,
-         put_block/5, put_block_list/3, put_block_list/4, get_block_list/2, get_block_list/3,
-         acquire_blob_lease/3, acquire_blob_lease/4, acquire_blob_lease/5]).
+-export([list_containers/1, list_containers/2]).
+-export([create_container/2, create_container/3]).
+-export([delete_container/2, delete_container/3]).
+-export([lease_container/3, lease_container/4]).
+-export([list_blobs/2, list_blobs/3]).
+-export([put_block_blob/4, put_block_blob/5]).
+-export([put_page_blob/4, put_page_blob/5]).
+-export([get_blob/3, get_blob/4]).
+-export([snapshot_blob/3, snapshot_blob/4]).
+-export([copy_blob/4, copy_blob/5]).
+-export([delete_blob/3, delete_blob/4]).
+-export([put_block/5, put_block/6]).
+-export([put_block_list/4, put_block_list/5]).
+-export([get_block_list/3, get_block_list/4]).
+-export([acquire_blob_lease/4, acquire_blob_lease/5, acquire_blob_lease/6]).
 
 %% Table API
--export([get_tables/0, get_tables/1]).
+-export([get_tables/1, get_tables/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -66,157 +81,155 @@
 %%====================================================================
 
 start(Account, Key) ->
-            gen_server:start_link({local, ?MODULE}, ?MODULE, #state{account = Account,
-                                                                    key = Key,
-                                                                    param_specs = get_request_param_specs()}, []).
+            gen_server:start_link(?MODULE, #state{account = Account,
+                                                  key = Key,
+                                                  param_specs = get_request_param_specs()}, []).
 
 %%====================================================================
 %% Queue
 %%====================================================================
-list_queues() ->
-            list_queues([]).
-list_queues(Options) when is_list(Options) ->
-            gen_server:call(?MODULE, {list_queues, Options}).
 
-get_queue_acl(Queue) ->
-            get_queue_acl(Queue, []).
-get_queue_acl(Queue, Options) when is_list(Options) ->
-            gen_server:call(?MODULE, {get_queue_acl, Queue, Options}).
+list_queues(Pid) ->
+            list_queues(Pid, []).
+list_queues(Pid, Options) when is_list(Options) ->
+            gen_server:call(Pid, {list_queues, Options}).
 
-create_queue(Queue) ->
-            create_queue(Queue, []).
-create_queue(Queue, Options) when is_list(Options) ->
-            gen_server:call(?MODULE, {create_queue, Queue, Options}).
+get_queue_acl(Pid, Queue) ->
+            get_queue_acl(Pid, Queue, []).
+get_queue_acl(Pid, Queue, Options) when is_list(Options) ->
+            gen_server:call(Pid, {get_queue_acl, Queue, Options}).
 
-delete_queue(Queue) ->
-            delete_queue(Queue, []).
-delete_queue(Queue, Options) when is_list(Options) ->
-            gen_server:call(?MODULE, {delete_queue, Queue, Options}).
+create_queue(Pid, Queue) ->
+            create_queue(Pid, Queue, []).
+create_queue(Pid, Queue, Options) when is_list(Options) ->
+            gen_server:call(Pid, {create_queue, Queue, Options}).
 
-put_message(Queue, Message) ->
-            put_message(Queue, Message, []).
-put_message(Queue, Message, Options) when is_list(Options) ->
-            gen_server:call(?MODULE, {put_message, Queue, Message, Options}).
+delete_queue(Pid, Queue) ->
+            delete_queue(Pid, Queue, []).
+delete_queue(Pid, Queue, Options) when is_list(Options) ->
+            gen_server:call(Pid, {delete_queue, Queue, Options}).
 
-get_messages(Queue) ->
-            get_messages(Queue, []).
-get_messages(Queue, Options) ->
-            gen_server:call(?MODULE, {get_messages, Queue, Options}).
+put_message(Pid, Queue, Message) ->
+            put_message(Pid, Queue, Message, []).
+put_message(Pid, Queue, Message, Options) when is_list(Options) ->
+            gen_server:call(Pid, {put_message, Queue, Message, Options}).
 
-peek_messages(Queue) ->
-            peek_messages(Queue, []).
-peek_messages(Queue, Options) ->
-            gen_server:call(?MODULE, {peek_messages, Queue, Options}).
+get_messages(Pid, Queue) ->
+            get_messages(Pid, Queue, []).
+get_messages(Pid, Queue, Options) ->
+            gen_server:call(Pid, {get_messages, Queue, Options}).
 
-delete_message(Queue, MessageId, PopReceipt) ->
-            delete_message(Queue, MessageId, PopReceipt, []).
-delete_message(Queue, MessageId, PopReceipt, Options) ->
-            gen_server:call(?MODULE, {delete_message, Queue, MessageId, PopReceipt, Options}).
+peek_messages(Pid, Queue) ->
+            peek_messages(Pid, Queue, []).
+peek_messages(Pid, Queue, Options) ->
+            gen_server:call(Pid, {peek_messages, Queue, Options}).
 
-clear_messages(Queue) ->
-            clear_messages(Queue, []).
-clear_messages(Queue, Options) ->
-            gen_server:call(?MODULE, {clear_messages, Queue, Options}).
+delete_message(Pid, Queue, MessageId, PopReceipt) ->
+            delete_message(Pid, Queue, MessageId, PopReceipt, []).
+delete_message(Pid, Queue, MessageId, PopReceipt, Options) ->
+            gen_server:call(Pid, {delete_message, Queue, MessageId, PopReceipt, Options}).
 
-update_message(Queue, UpdatedMessage=#queue_message{}, VisibilityTimeout) ->
-            update_message(Queue, UpdatedMessage, VisibilityTimeout, []).
-update_message(Queue, UpdatedMessage=#queue_message{}, VisibilityTimeout, Options) ->
-            gen_server:call(?MODULE, {update_message, Queue, UpdatedMessage, VisibilityTimeout, Options}).
+clear_messages(Pid, Queue) ->
+            clear_messages(Pid, Queue, []).
+clear_messages(Pid, Queue, Options) ->
+            gen_server:call(Pid, {clear_messages, Queue, Options}).
+
+update_message(Pid, Queue, UpdatedMessage=#queue_message{}, VisibilityTimeout) ->
+            update_message(Pid, Queue, UpdatedMessage, VisibilityTimeout, []).
+update_message(Pid, Queue, UpdatedMessage=#queue_message{}, VisibilityTimeout, Options) ->
+            gen_server:call(Pid, {update_message, Queue, UpdatedMessage, VisibilityTimeout, Options}).
 
 %%====================================================================
 %% Blob
 %%====================================================================
 
-list_containers() ->
-            list_containers([]).
-list_containers(Options) ->
-            gen_server:call(?MODULE, {list_containers, Options}).
+list_containers(Pid) ->
+            list_containers(Pid, []).
+list_containers(Pid, Options) ->
+            gen_server:call(Pid, {list_containers, Options}).
 
-create_container(Name) ->
-            create_container(Name, []).
-create_container(Name, Options) ->
-            gen_server:call(?MODULE, {create_container, Name, Options}).
+create_container(Pid, Name) ->
+            create_container(Pid, Name, []).
+create_container(Pid, Name, Options) ->
+            gen_server:call(Pid, {create_container, Name, Options}).
 
-delete_container(Name) ->
-            delete_container(Name, []).
-delete_container(Name, Options) ->
-            gen_server:call(?MODULE, {delete_container, Name, Options}).
+delete_container(Pid, Name) ->
+            delete_container(Pid, Name, []).
+delete_container(Pid, Name, Options) ->
+            gen_server:call(Pid, {delete_container, Name, Options}).
 
-put_block_blob(Container, Name, Data) ->
-            put_block_blob(Container, Name, Data, []).
+put_block_blob(Pid, Container, Name, Data) ->
+            put_block_blob(Pid, Container, Name, Data, []).
+put_block_blob(Pid, Container, Name, Data, Options) ->
+            gen_server:call(Pid, {put_blob, Container, Name, block_blob, Data, Options}).
 
-put_block_blob(Container, Name, Data, Options) ->
-            gen_server:call(?MODULE, {put_blob, Container, Name, block_blob, Data, Options}).
+put_page_blob(Pid, Container, Name, ContentLength) ->
+            put_block_blob(Pid, Container, Name, ContentLength, []).
+put_page_blob(Pid, Container, Name, ContentLength, Options) ->
+            gen_server:call(Pid, {put_blob, Container, Name, page_blob, ContentLength, Options}).
 
-put_page_blob(Container, Name, ContentLength) ->
-            put_block_blob(Container, Name, ContentLength, []).
+list_blobs(Pid, Container) ->
+            list_blobs(Pid, Container, []).
+list_blobs(Pid, Container, Options) ->
+            gen_server:call(Pid, {list_blobs, Container, Options}).
 
-put_page_blob(Container, Name, ContentLength, Options) ->
-            gen_server:call(?MODULE, {put_blob, Container, Name, page_blob, ContentLength, Options}).
+get_blob(Pid, Container, Blob) ->
+            get_blob(Pid, Container, Blob, []).
+get_blob(Pid, Container, Blob, Options) ->
+            gen_server:call(Pid, {get_blob, Container, Blob, Options}).
 
-list_blobs(Container) ->
-            list_blobs(Container, []).
-list_blobs(Container, Options) ->
-            gen_server:call(?MODULE, {list_blobs, Container, Options}).
+snapshot_blob(Pid, Container, Blob) ->
+            snapshot_blob(Pid, Container, Blob, []).
+snapshot_blob(Pid, Container, Blob, Options) ->
+            gen_server:call(Pid, {snapshot_blob, Container, Blob, Options}).
 
-get_blob(Container, Blob) ->
-            get_blob(Container, Blob, []).
-get_blob(Container, Blob, Options) ->
-            gen_server:call(?MODULE, {get_blob, Container, Blob, Options}).
+copy_blob(Pid, Container, Blob, Source) ->
+            copy_blob(Pid, Container, Blob, Source, []).
+copy_blob(Pid, Container, Blob, Source, Options) ->
+            gen_server:call(Pid, {copy_blob, Container, Blob, Source, Options}).
 
-snapshot_blob(Container, Blob) ->
-            snapshot_blob(Container, Blob, []).
-snapshot_blob(Container, Blob, Options) ->
-            gen_server:call(?MODULE, {snapshot_blob, Container, Blob, Options}).
+delete_blob(Pid, Container, Blob) ->
+            delete_blob(Pid, Container, Blob, []).
+delete_blob(Pid, Container, Blob, Options) ->
+            gen_server:call(Pid, {delete_blob, Container, Blob, Options}).
 
-copy_blob(Container, Blob, Source) ->
-            copy_blob(Container, Blob, Source, []).
-copy_blob(Container, Blob, Source, Options) ->
-            gen_server:call(?MODULE, {copy_blob, Container, Blob, Source, Options}).
+put_block(Pid, Container, Blob, BlockId, BlockContent) ->
+            put_block(Pid, Container, Blob, BlockId, BlockContent, []).
+put_block(Pid, Container, Blob, BlockId, BlockContent, Options) ->
+            gen_server:call(Pid, {put_block, Container, Blob, BlockId, BlockContent, Options}).
 
-delete_blob(Container, Blob) ->
-            delete_blob(Container, Blob, []).
-delete_blob(Container, Blob, Options) ->
-            gen_server:call(?MODULE, {delete_blob, Container, Blob, Options}).
+put_block_list(Pid, Container, Blob, BlockRefs) ->
+            put_block_list(Pid, Container, Blob, BlockRefs, []).
+put_block_list(Pid, Container, Blob, BlockRefs, Options) ->
+            gen_server:call(Pid, {put_block_list, Container, Blob, BlockRefs, Options}).
 
-put_block(Container, Blob, BlockId, BlockContent) ->
-            put_block(Container, Blob, BlockId, BlockContent, []).
-put_block(Container, Blob, BlockId, BlockContent, Options) ->
-            gen_server:call(?MODULE, {put_block, Container, Blob, BlockId, BlockContent, Options}).
+get_block_list(Pid, Container, Blob) ->
+            get_block_list(Pid, Container, Blob, []).
+get_block_list(Pid, Container, Blob, Options) ->
+            gen_server:call(Pid, {get_block_list, Container, Blob, Options}).
 
-put_block_list(Container, Blob, BlockRefs) ->
-            put_block_list(Container, Blob, BlockRefs, []).
-put_block_list(Container, Blob, BlockRefs, Options) ->
-            gen_server:call(?MODULE, {put_block_list, Container, Blob, BlockRefs, Options}).
+acquire_blob_lease(Pid, Container, Blob, Duration) ->
+            acquire_blob_lease(Pid, Container, Blob, "", Duration, []).
 
-get_block_list(Container, Blob) ->
-            get_block_list(Container, Blob, []).
-get_block_list(Container, Blob, Options) ->
-            gen_server:call(?MODULE, {get_block_list, Container, Blob, Options}).
+acquire_blob_lease(Pid, Container, Blob, Duration, Options) ->
+            acquire_blob_lease(Pid, Container, Blob, "", Duration, Options).
 
-acquire_blob_lease(Container, Blob, Duration) ->
-            acquire_blob_lease(Container, Blob, "", Duration, []).
+acquire_blob_lease(Pid, Container, Blob, ProposedId, Duration, Options) ->
+            gen_server:call(Pid, {acquire_blob_lease, Container, Blob, ProposedId, Duration, Options}).
 
-acquire_blob_lease(Container, Blob, Duration, Options) ->
-            acquire_blob_lease(Container, Blob, "", Duration, Options).
-
-acquire_blob_lease(Container, Blob, ProposedId, Duration, Options) ->
-            gen_server:call(?MODULE, {acquire_blob_lease, Container, Blob, ProposedId, Duration, Options}).
-
-lease_container(Name, Mode) when is_atom(Mode) ->
-            lease_container(Name, Mode, []).
-lease_container(Name, Mode, Options) when is_atom(Mode) ->
-            gen_server:call(?MODULE, {lease_container, Name, Mode, Options}).
+lease_container(Pid, Name, Mode) when is_atom(Mode) ->
+            lease_container(Pid, Name, Mode, []).
+lease_container(Pid, Name, Mode, Options) when is_atom(Mode) ->
+            gen_server:call(Pid, {lease_container, Name, Mode, Options}).
 
 %%====================================================================
 %% Table
 %%====================================================================
 
-get_tables() ->
-            get_tables([]).
-
-get_tables(Options) ->
-            gen_server:call(?MODULE, {get_table_list, Options}).
+get_tables(Pid) ->
+            get_tables(Pid, []).
+get_tables(Pid, Options) ->
+            gen_server:call(Pid, {get_table_list, Options}).
 
 %%====================================================================
 %% gen_server callbacks
