@@ -112,8 +112,6 @@
                      properties=[],
                      metadata=[]}).
 
--record(blob_block_ref, {id="", type=undefined}).
-
 -record(blob_block, {id="",
-                     type=undefined,
+                     type=unknown,
                      size=0}).

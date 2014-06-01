@@ -133,12 +133,12 @@ parse_block_list(BlockListResponse) when is_list(BlockListResponse) ->
                     FoldFun = fun(#xmlElement{ name = Name, content = Content }, {Committed, Uncommitted}) ->
                                 case Name of
                                   'CommittedBlocks' ->
-                                    Nodes = erlazure_xml:filter_elements(Content),
-                                    {lists:reverse(lists:map(fun parse_block/1, Nodes)), Uncommitted};
+                                    Nodes1 = erlazure_xml:filter_elements(Content),
+                                    {lists:map(fun(Elem) -> parse_block(Elem, committed) end, Nodes1), Uncommitted};
 
                                   'UncommittedBlocks' ->
-                                    Nodes = erlazure_xml:filter_elements(Content),
-                                    {lists:reverse(lists:map(fun parse_block/1, Nodes)), Committed};
+                                    Nodes1 = erlazure_xml:filter_elements(Content),
+                                    {Committed, lists:map(fun(Elem) -> parse_block(Elem, uncommitted) end, Nodes1)};
 
                                   _ ->
                                     {Committed, Uncommitted}
@@ -149,7 +149,7 @@ parse_block_list(BlockListResponse) when is_list(BlockListResponse) ->
                   _ -> {error, bad_response}
                 end.
 
-parse_block(#xmlElement{ content = Content }) ->
+parse_block(#xmlElement{ content = Content }, Type) ->
                 Nodes = erlazure_xml:filter_elements(Content),
                 FoldFun = fun(Elem=#xmlElement{ name = Name1 }, Block=#blob_block{}) ->
                             case Name1 of
@@ -163,7 +163,7 @@ parse_block(#xmlElement{ content = Content }) ->
                                   Block
                             end
                           end,
-                lists:foldl(FoldFun, #blob_block{}, Nodes).
+                lists:foldl(FoldFun, #blob_block{ type = Type }, Nodes).
 
 str_to_blob_type("BlockBlob") -> block_blob;
 str_to_blob_type("PageBlob") -> page_blob.
@@ -180,10 +180,10 @@ str_to_copy_status("success") -> success;
 str_to_copy_status(_) -> unknown.
 
 get_request_body(BlockRefs) ->
-                FoldFun = fun(BlockRef=#blob_block_ref{}, Acc) ->
-                              [{block_type_to_node(BlockRef#blob_block_ref.type),
+                FoldFun = fun(BlockRef=#blob_block{}, Acc) ->
+                              [{block_type_to_node(BlockRef#blob_block.type),
                                 [],
-                                [base64:encode_to_string(BlockRef#blob_block_ref.id)]} | Acc]
+                                [base64:encode_to_string(BlockRef#blob_block.id)]} | Acc]
                           end,
                 Data = {'BlockList', [], lists:reverse(lists:foldl(FoldFun, [], BlockRefs))},
                 lists:flatten(xmerl:export_simple([Data], xmerl_xml)).

@@ -34,7 +34,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
-parse_list_containers_response_test() ->
+parse_container_list_test() ->
                 Response = test_utils:read_file("list_containers.xml"),
                 {ok, ParseResult} = erlazure_blob:parse_container_list(Response),
 
@@ -69,7 +69,6 @@ parse_blob_test() ->
                 BlobsNode = lists:keyfind('Blobs', 2, ParseResult#xmlElement.content),
                 Blob1 = lists:keyfind('Blob', 2, BlobsNode#xmlElement.content),
                 ParsedBlob1 = erlazure_blob:parse_blob_response(Blob1),
-                ?PRINT(ParsedBlob1),
                 ?assertMatch(#cloud_blob{
                                   name = "blb1.txt",
                                   snapshot = "Mon, 05 May 2014 16:08:11 GMT",
@@ -95,10 +94,21 @@ parse_blob_test() ->
                                     {copy_completion_time, "Mon, 05 May 2014 16:08:11 GMT"},
                                     {copy_status_description, "copy status"}]}, ParsedBlob1).
 
-parse_list_blobs_response_test() ->
+parse_blob_list_test() ->
                 Response = test_utils:read_file("list_blobs.xml"),
-                {ok, ParseResult} = erlazure_blob:parse_blob_list(Response),
-                {[Blob1, Blob2], _} = ParseResult,
+                {ok, {[Blob1, Blob2], _}} = erlazure_blob:parse_blob_list(Response),
 
                 ?assertMatch(#cloud_blob{ name = "blb1.txt" }, Blob1),
                 ?assertMatch(#cloud_blob{ name = "blb2.txt" }, Blob2).
+
+parse_block_list_test() ->
+                Response = test_utils:read_file("list_blocks.xml"),
+                {ok, {CommittedBlocks, UncommittedBlocks}} = erlazure_blob:parse_block_list(Response),
+
+                ?assertMatch([#blob_block { id = "BlockId001", type = committed, size = 4194304 },
+                              #blob_block { id = "BlockId002", type = committed, size = 41912}],
+                              CommittedBlocks),
+
+                ?assertMatch([#blob_block { id = "BlockId003", type = uncommitted, size = 4194304 },
+                              #blob_block { id = "BlockId004", type = uncommitted, size = 1024000}],
+                              UncommittedBlocks).
