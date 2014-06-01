@@ -22,7 +22,7 @@ Erlazure requires OTP version R16+.
   * Delete message
   * Clear messages
   * Update message
-  * 
+  
 * Blob storage service
   * List containers
   * Create container
