@@ -557,8 +557,8 @@ handle_call({get_block_list, Container, Blob, Options}, _From, State) ->
                                                     Options),
 
             {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
-            {ok, {"BlockList", _, Elements}, _} = erlsom:simple_form(Body),
-            {reply, erlazure_blob:parse_block_list(Elements), State};
+            {ok, BlockList} = erlazure_blob:parse_block_list(Body),
+            {reply, BlockList, State};
 
 % Acquire blob lease
 handle_call({acquire_blob_lease, Container, Blob, ProposedId, Duration, Options}, _From, State) ->

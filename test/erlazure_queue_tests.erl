@@ -60,13 +60,5 @@ parse_list_messages_response_test() ->
                                   dequeue_count = 3,
                                   text = "dafasdf\r\nasdfa\r\nsdfa\r\nsdf\r\nas\r\nd\r\nas\r\ndf\r\nasdf"}], ParseResult).
 
-%named_test_() ->
-%  {setup,
-%    fun() -> erlazure:start("<account>", "<key>") end,
-%    fun(_) -> ok end,
-%    [?_assertMatch({ok, created}, erlazure:create_queue(get_queue_unique_name()))
-%    ]
-%}.
-
 get_queue_unique_name() ->
                 test_utils:append_ticks("TestQueue").

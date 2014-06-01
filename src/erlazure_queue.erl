@@ -43,12 +43,9 @@ parse_queue_messages_list(Response) when is_binary(Response) ->
 
 parse_queue_messages_list(Response) when is_list(Response) ->
           {ParseResult, _} = xmerl_scan:string(Response),
-          parse_queue_messages_list(ParseResult);
-
-parse_queue_messages_list(Elem=#xmlElement{}) ->
-          case Elem#xmlElement.name of
+          case ParseResult#xmlElement.name of
             'QueueMessagesList' ->
-              Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
+              Nodes = erlazure_xml:filter_elements(ParseResult#xmlElement.content),
               {ok, lists:map(fun parse_queue_message/1, Nodes)};
             _ -> {error, bad_response}
           end.

@@ -122,42 +122,51 @@ parse_blob_properties(#xmlElement { content = Content }) ->
                 end,
                 lists:foldl(FoldFun, [], Nodes).
 
+parse_block_list(BlockListResponse) when is_binary(BlockListResponse) ->
+                parse_block_list(erlang:binary_to_list(BlockListResponse));
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-parse_block_list(Blocks) ->
-                io:format("~p~n", [Blocks]),
-                Committed = parse_block_list("CommittedBlocks", committed, Blocks),
-                Uncommitted = parse_block_list("UncommittedBlocks", uncommitted, Blocks),
-                Committed ++ Uncommitted.
+parse_block_list(BlockListResponse) when is_list(BlockListResponse) ->
+                {ParseResult, _} = xmerl_scan:string(BlockListResponse),
+                case ParseResult#xmlElement.name of
+                  'BlockList' ->
+                    Nodes = erlazure_xml:filter_elements(ParseResult#xmlElement.content),
+                    FoldFun = fun(#xmlElement{ name = Name, content = Content }, {Committed, Uncommitted}) ->
+                                case Name of
+                                  'CommittedBlocks' ->
+                                    Nodes = erlazure_xml:filter_elements(Content),
+                                    {lists:reverse(lists:map(fun parse_block/1, Nodes)), Uncommitted};
 
-parse_block_list(NodeName, BlockType, Blocks) ->
-                case lists:keyfind(NodeName, 1, Blocks) of
-                  {NodeName, _, Elements} ->
-                    ParseFun = fun(Element) -> parse_block(Element, BlockType) end,
-                    erlazure_xml:parse_list(ParseFun, Elements);
-                  false -> []
+                                  'UncommittedBlocks' ->
+                                    Nodes = erlazure_xml:filter_elements(Content),
+                                    {lists:reverse(lists:map(fun parse_block/1, Nodes)), Committed};
+
+                                  _ ->
+                                    {Committed, Uncommitted}
+                                end
+                              end,
+                    {ok, lists:foldl(FoldFun, {[], []}, Nodes)};
+
+                  _ -> {error, bad_response}
                 end.
 
-parse_block({"Block", _, Elements}, Type) ->
-                #blob_block{
-                  id = base64:decode_to_string(erlazure_xml:get_element_text("Name", Elements)),
-                  size = list_to_integer(erlazure_xml:get_element_text("Size", Elements)),
-                  type = Type
-                }.
+parse_block(#xmlElement{ content = Content }) ->
+                Nodes = erlazure_xml:filter_elements(Content),
+                FoldFun = fun(Elem=#xmlElement{ name = Name1 }, Block=#blob_block{}) ->
+                            case Name1 of
+                              'Name' ->
+                                  Block#blob_block { id = base64:decode_to_string(erlazure_xml:parse_str(Elem)) };
+
+                              'Size' ->
+                                  Block#blob_block { size = erlazure_xml:parse_int(Elem) };
+
+                              _ ->
+                                  Block
+                            end
+                          end,
+                lists:foldl(FoldFun, #blob_block{}, Nodes).
 
 str_to_blob_type("BlockBlob") -> block_blob;
 str_to_blob_type("PageBlob") -> page_blob.
-
-blob_type_to_str(block_blob) -> "BlockBlob";
-blob_type_to_str(page_blob) -> "PageBlob".
-
-str_to_block_type("Uncommitted") -> uncommitted;
-str_to_block_type("Committed") -> committed;
-str_to_block_type("Latest") -> latest.
-
-block_type_to_str(uncommitted) -> "Uncommitted";
-block_type_to_str(committed) -> "Committed";
-block_type_to_str(latest) -> "Latest".
 
 block_type_to_node(uncommitted) -> 'Uncommitted';
 block_type_to_node(committed) -> 'Committed';
@@ -178,24 +187,6 @@ get_request_body(BlockRefs) ->
                           end,
                 Data = {'BlockList', [], lists:reverse(lists:foldl(FoldFun, [], BlockRefs))},
                 lists:flatten(xmerl:export_simple([Data], xmerl_xml)).
-
-parse_lease_properties(Elem=#xmlElement{}) ->
-                erlang:list_to_atom(erlazure_xml:parse_str(Elem)).
-
-get_blob_property_specs() ->
-                [#property_spec{ name = last_modified, key = 'Last-Modified' },
-                 #property_spec{ name = etag, key = 'Etag' },
-                 #property_spec{ name = content_length, key = 'Content-Length', parse_fun = fun erlazure_xml:parse_int/1 },
-                 #property_spec{ name = content_type, key = 'Content-Type' },
-                 #property_spec{ name = content_encoding, key = 'Content-Encoding' },
-                 #property_spec{ name = content_language, key = 'Content-Language' },
-                 #property_spec{ name = content_md5, key = 'Content-MD5' },
-                 #property_spec{ name = cache_control, key = 'Cache-Control' },
-                 #property_spec{ name = sequence_number, key = 'x-ms-blob-sequence-number' },
-                 #property_spec{ name = blob_type, key = 'BlobType', parse_fun = fun(Elem=#xmlElement{}) -> str_to_blob_type(erlazure_xml:parse_str(Elem)) end },
-                 #property_spec{ name = lease_status, key = 'LeaseStatus', parse_fun = fun parse_lease_properties/1 },
-                 #property_spec{ name = lease_state, key = 'LeaseState', parse_fun = fun parse_lease_properties/1 },
-                 #property_spec{ name = lease_duration, key = 'LeaseDuration', parse_fun = fun parse_lease_properties/1 }].
 
 get_request_param_specs() ->
                 [#param_spec{ id = block_list_type, type = uri, name = "blocklisttype" },
