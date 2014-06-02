@@ -33,7 +33,6 @@
 -author("Dmitry Kataskin").
 
 -include("erlazure.hrl").
--include_lib("xmerl/include/xmerl.hrl").
 
 %% API
 -export([parse_queue_list/1, parse_queue_messages_list/1, get_request_body/1, get_request_param_specs/0]).

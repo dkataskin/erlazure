@@ -40,38 +40,59 @@
 -define(blob_service_ver, "2012-02-12").
 -define(table_service_ver, "2012-02-12").
 
+-include_lib("xmerl/include/xmerl.hrl").
+
 -ifndef(PRINT).
 -define(PRINT(Var), io:format("DEBUG: ~p:~p - ~p~n~n ~p~n~n", [?MODULE, ?LINE, ??Var, Var])).
 -endif.
 
--record(service_context, {service, api_version, account, key}).
+%% Types
+-type xmlElement() :: #xmlElement{}.
 
--record(req_context, {method = get,
-                      address,
-                      path = "",
-                      parameters = [],
-                      content_type = "application/xml",
-                      content_length = 0,
-                      body = "",
-                      headers = []}).
+-type method() :: get | post | delete | head.
 
--record(param_spec, {id,
-                     type,
-                     name,
-                     parse_fun = fun(Value) -> lists:flatten(io_lib:format("~p", [Value])) end}).
+-type requestParamType() :: uri | header.
 
--record(property_spec, {name,
-                        key,
-                        parse_fun = fun(Elem) -> erlazure_xml:parse_str(Elem) end}).
+-record(service_context, {service :: string(),
+                          api_version :: string(),
+                          account :: string(),
+                          key :: string()}).
+-type service_context() :: #service_context{}.
 
--record(enum_parser_spec, {rootKey,
-                           elementKey,
-                           elementParser,
-                           customParsers=[]}).
+-record(req_context, {method = get :: method(),
+                      address :: string(),
+                      path = "" :: string(),
+                      parameters = [] :: list(),
+                      content_type = "application/xml" :: string(),
+                      content_length = 0 :: non_neg_integer(),
+                      body = "" :: string(),
+                      headers = [] :: [string()]}).
+-type req_context() :: #req_context{}.
+
+-record(param_spec, {id :: atom(),
+                     type :: requestParamType(),
+                     name :: string(),
+                     parse_fun = fun(Value) ->
+                                   lists:flatten(io_lib:format("~p", [Value]))
+                                 end :: fun((any()) -> string())}).
+-type param_spec() :: #param_spec{}.
+
+-record(property_spec, {name :: atom(),
+                        key :: atom(),
+                        parse_fun = fun(Elem=#xmlElement{}) ->
+                                      erlazure_xml:parse_str(Elem)
+                                    end :: fun((xmlElement()) -> string() | integer() | atom())}).
+
+-record(enum_parser_spec, {rootKey :: atom(),
+                           elementKey :: atom(),
+                           elementParser :: any(),
+                           customParsers=[] :: [any()]}).
+-type enum_parser_spec() :: #enum_parser_spec{}.
+
 % Queue
--record(queue, {name="",
-                url="",
-                metadata=[]}).
+-record(queue, {name="" :: string(),
+                url="" :: string(),
+                metadata=[] :: list()}).
 
 -record(access_policy, {start="",
                         expiry="",
@@ -80,13 +101,14 @@
 -record(signed_id, {id="",
                     access_policy=#access_policy{}}).
 
--record(queue_message, {id="",
-                        insertion_time="",
-                        exp_time="",
-                        pop_receipt="",
-                        next_visible="",
-                        dequeue_count=0,
-                        text=""}).
+-record(queue_message, {id="" :: string(),
+                        insertion_time="" :: string(),
+                        exp_time="" :: string(),
+                        pop_receipt="" :: string(),
+                        next_visible="" :: string(),
+                        dequeue_count=0 :: non_neg_integer(),
+                        text="" :: string()}).
+-type queue_message() :: #queue_message{}.
 
 % Blob
 -record(blob_container, {name="",

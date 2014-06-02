@@ -33,7 +33,6 @@
 -include("erlazure.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
--include_lib("xmerl/include/xmerl.hrl").
 
 parse_list_queues_response_test() ->
                 Response = test_utils:read_file("list_queues.xml"),

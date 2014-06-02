@@ -32,7 +32,6 @@
 -module(erlazure_blob).
 -author("Dmitry Kataskin").
 
--include_lib("xmerl/include/xmerl.hrl").
 -include("erlazure.hrl").
 
 %% API

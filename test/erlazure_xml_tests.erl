@@ -32,8 +32,6 @@
 
 -include("erlazure.hrl").
 -include_lib("eunit/include/eunit.hrl").
--include_lib("xmerl/include/xmerl.hrl").
-
 
 parse_enumeration_test() ->
                 Response = test_utils:read_file("enumeration_result.xml"),

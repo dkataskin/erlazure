@@ -32,7 +32,6 @@
 
 -include("erlazure.hrl").
 -include_lib("eunit/include/eunit.hrl").
--include_lib("xmerl/include/xmerl.hrl").
 
 parse_container_list_test() ->
                 Response = test_utils:read_file("list_containers.xml"),

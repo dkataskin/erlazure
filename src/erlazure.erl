@@ -89,6 +89,7 @@ start(Account, Key) ->
 %% Queue
 %%====================================================================
 
+-spec list_queues(pid()) -> {error, bad_response} | {ok, {[queue()], list()}}.
 list_queues(Pid) ->
             list_queues(Pid, []).
 list_queues(Pid, Options) when is_list(Options) ->
@@ -618,6 +619,7 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 %% Private functions
 %%--------------------------------------------------------------------
 
+-spec execute_request(service_context(), req_context()) -> {non_neg_integer(), binary()}.
 execute_request(ServiceContext = #service_context{}, RequestContext = #req_context{}) ->
                 Headers =  [{"x-ms-date", httpd_util:rfc1123_date()},
                             {"x-ms-version", ServiceContext#service_context.api_version},

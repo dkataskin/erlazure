@@ -29,7 +29,6 @@
 -author("Dmitry Kataskin").
 
 -include("erlazure.hrl").
--include_lib("xmerl/include/xmerl.hrl").
 
 -record(parse_enum_acc, { items=[], misc=[], custom=[], spec = #enum_parser_spec{} }).
 
