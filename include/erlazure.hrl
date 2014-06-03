@@ -54,6 +54,8 @@
 -type lease_status() :: locked | unlocked.
 -type lease_duration() :: infinite | fixed.
 
+-type blob_block_type() :: committed | uncommitted.
+
 -type requestParamType() :: uri | header.
 
 -record(service_context, {service :: string(),
@@ -143,6 +145,7 @@
                      metadata=[] :: list()}).
 -type cloud_blob() :: #cloud_blob{}.
 
--record(blob_block, {id="",
-                     type=unknown,
-                     size=0}).
+-record(blob_block, {id="" :: string(),
+                     type :: blob_block_type(),
+                     size=0 :: non_neg_integer()}).
+-type blob_block() :: #blob_block{}.
