@@ -111,10 +111,11 @@
 -type queue_message() :: #queue_message{}.
 
 % Blob
--record(blob_container, {name="",
-                         url="",
-                         properties=[],
-                         metadata=[]}).
+-record(blob_container, {name="" :: string(),
+                         url="" :: string(),
+                         properties=[] :: list(),
+                         metadata=[] :: list()}).
+-type blob_container() :: #blob_container{}.
 
 -record(blob_lease, {id="",
                      status,
