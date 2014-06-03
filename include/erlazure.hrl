@@ -48,8 +48,11 @@
 
 %% Types
 -type xmlElement() :: #xmlElement{}.
-
 -type method() :: get | post | delete | head.
+
+-type lease_state() :: available | leased | breaking | broken | expired.
+-type lease_status() :: locked | unlocked.
+-type lease_duration() :: infinite | fixed.
 
 -type requestParamType() :: uri | header.
 
@@ -82,6 +85,7 @@
                         parse_fun = fun(Elem=#xmlElement{}) ->
                                       erlazure_xml:parse_str(Elem)
                                     end :: fun((xmlElement()) -> string() | integer() | atom())}).
+-type property_spec() :: #property_spec{}.
 
 -record(enum_parser_spec, {rootKey :: atom(),
                            elementKey :: atom(),
@@ -94,12 +98,14 @@
                 url="" :: string(),
                 metadata=[] :: list()}).
 
--record(access_policy, {start="",
-                        expiry="",
-                        permission=""}).
+-record(access_policy, {start="" :: string(),
+                        expiry="" :: string(),
+                        permission="" :: string()}).
+-type access_policy() :: #access_policy{}.
 
--record(signed_id, {id="",
-                    access_policy=#access_policy{}}).
+-record(signed_id, {id="" :: string(),
+                    access_policy=#access_policy{} :: access_policy()}).
+-type signed_id() :: #signed_id{}.
 
 -record(queue_message, {id="" :: string(),
                         insertion_time="" :: string(),
@@ -117,10 +123,11 @@
                          metadata=[] :: list()}).
 -type blob_container() :: #blob_container{}.
 
--record(blob_lease, {id="",
-                     status,
-                     state,
-                     duration}).
+-record(blob_lease, {id="" :: string(),
+                     status :: lease_status(),
+                     state :: lease_state(),
+                     duration :: lease_duration()}).
+-type blob_lease() :: #blob_lease{}.
 
 -record(blob_copy_state, {id="",
                           status,
@@ -129,11 +136,12 @@
                           completion_time="",
                           status_description=""}).
 
--record(cloud_blob, {name="",
-                     snapshot="",
-                     url="",
-                     properties=[],
-                     metadata=[]}).
+-record(cloud_blob, {name="" :: string(),
+                     snapshot="" :: string(),
+                     url="" :: string(),
+                     properties=[] :: list(),
+                     metadata=[] :: list()}).
+-type cloud_blob() :: #cloud_blob{}.
 
 -record(blob_block, {id="",
                      type=unknown,
