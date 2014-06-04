@@ -31,7 +31,6 @@
 %% API
 -export([append_ticks/1, get_ticks/0, read_file/1]).
 
-
 append_ticks(Name) ->
   Name ++ integer_to_list(get_ticks()).
 

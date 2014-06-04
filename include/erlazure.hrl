@@ -48,21 +48,39 @@
 
 %% Types
 -type xmlElement() :: #xmlElement{}.
+-export_type([xmlElement/0]).
+
+-type metadata() :: proplists:proplist().
+-export_type([metadata/0]).
+
 -type method() :: get | post | delete | head.
+-export_type([method/0]).
 
 -type lease_state() :: available | leased | breaking | broken | expired.
 -type lease_status() :: locked | unlocked.
 -type lease_duration() :: infinite | fixed.
+-export_type([lease_state/0, lease_status/0, lease_duration/0]).
 
 -type blob_block_type() :: committed | uncommitted.
+-export_type([blob_block_type/0]).
+
+-type enum_common_token() :: {prefix, string()}
+              | {marker, string()}
+              | {max_results, non_neg_integer()}
+              | {delimiter, string()}
+              | {next_marker, string()}.
+-type enum_common_tokens() :: list(enum_common_token()).
+-export_type([enum_common_token/0, enum_common_tokens/0]).
 
 -type requestParamType() :: uri | header.
+-export_type([requestParamType/0]).
 
 -record(service_context, {service :: string(),
                           api_version :: string(),
                           account :: string(),
                           key :: string()}).
 -type service_context() :: #service_context{}.
+-export_type([service_context/0]).
 
 -record(req_context, {method = get :: method(),
                       address :: string(),
@@ -73,6 +91,7 @@
                       body = "" :: string(),
                       headers = [] :: [string()]}).
 -type req_context() :: #req_context{}.
+-export_type([req_context/0]).
 
 -record(param_spec, {id :: atom(),
                      type :: requestParamType(),
@@ -81,6 +100,7 @@
                                    lists:flatten(io_lib:format("~p", [Value]))
                                  end :: fun((any()) -> string())}).
 -type param_spec() :: #param_spec{}.
+-export_type([param_spec/0]).
 
 -record(property_spec, {name :: atom(),
                         key :: atom(),
@@ -88,17 +108,21 @@
                                       erlazure_xml:parse_str(Elem)
                                     end :: fun((xmlElement()) -> string() | integer() | atom())}).
 -type property_spec() :: #property_spec{}.
+-export_type([property_spec/0]).
 
 -record(enum_parser_spec, {rootKey :: atom(),
                            elementKey :: atom(),
                            elementParser :: any(),
                            customParsers=[] :: [any()]}).
 -type enum_parser_spec() :: #enum_parser_spec{}.
+-export_type([enum_parser_spec/0]).
 
 % Queue
 -record(queue, {name="" :: string(),
                 url="" :: string(),
-                metadata=[] :: list()}).
+                metadata=[] :: list()}). %% @todo Improve specs.
+-type queue() :: #queue{}.
+-export_type([queue/0]).
 
 -record(access_policy, {start="" :: string(),
                         expiry="" :: string(),

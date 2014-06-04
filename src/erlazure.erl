@@ -89,7 +89,7 @@ start(Account, Key) ->
 %% Queue
 %%====================================================================
 
--spec list_queues(pid()) -> {error, bad_response} | {ok, {[queue()], list()}}.
+-spec list_queues(pid()) -> {error, bad_response} | {ok, {list(queue()), metadata()}}.
 list_queues(Pid) ->
             list_queues(Pid, []).
 list_queues(Pid, Options) when is_list(Options) ->
