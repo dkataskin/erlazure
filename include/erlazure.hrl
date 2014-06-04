@@ -46,6 +46,7 @@
 -define(req_param_maxresults, max_results).
 -define(req_param_include, include).
 -define(req_param_timeout, timeout).
+-define(req_param_clientrequestid, client_request_id).
 
 -include_lib("xmerl/include/xmerl.hrl").
 
@@ -66,18 +67,34 @@
 -type metadata() :: proplists:proplist().
 -export_type([metadata/0]).
 
--type request_common_opt() :: {?req_param_prefix, string()}
-              | {?req_param_marker, string()}
-              | {?req_param_maxresults, non_neg_integer()}
-              | {?req_param_include, metadata}
-              | {?req_param_timeout, non_neg_integer()}.
+-type req_param_prefix()          :: {?req_param_prefix, string()}.
+-type req_param_marker()          :: {?req_param_marker, string()}.
+-type req_param_maxresults()      :: {?req_param_maxresults, non_neg_integer()}.
+-type req_param_include()         :: {?req_param_include, metadata}.
+-type req_param_timeout()         :: {?req_param_timeout, non_neg_integer()}.
+-type req_param_clientrequestid() :: {?req_param_clientrequestid, string()}.
+
+-type request_common_opt() :: req_param_prefix()
+              | req_param_marker()
+              | req_param_maxresults()
+              | req_param_include()
+              | req_param_timeout()
+              | req_param_clientrequestid().
+
 -type common_opts() :: list(request_common_opt()).
+-export_type([req_param_prefix/0, req_param_marker/0, req_param_maxresults/0, req_param_include/0,
+              req_param_timeout/0, req_param_clientrequestid/0]).
 -export_type([request_common_opt/0]).
 -export_type([common_opts/0]).
 
--type bad_response() :: {error, bad_response}.
+-type created_response()        :: {ok, created}.
+-type updated_response()        :: {ok, updated}.
+-type deleted_response()        :: {ok, deleted}.
+-type lease_acquired_response() :: {ok, acquired}.
+-type bad_response()            :: {error, bad_response}.
+-export_type([bad_response/0, created_response/0, updated_response/0, deleted_response/0, lease_acquired_response/0]).
+
 -type enum_parse_result(T) :: bad_response() | {ok, {list(T), metadata()}}.
--export_type([bad_response/0]).
 -export_type([enum_parse_result/1]).
 
 -type lease_state() :: available | leased | breaking | broken | expired.
@@ -147,7 +164,7 @@
 % Queue
 -record(queue, {name="" :: string(),
                 url="" :: string(),
-                metadata=[] :: list()}). %% @todo Improve specs.
+                metadata=[] :: metadata()}).
 -type queue() :: #queue{}.
 -export_type([queue/0]).
 

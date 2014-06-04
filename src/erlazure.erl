@@ -80,6 +80,7 @@
 %% API
 %%====================================================================
 
+-spec start(string(), string()) -> pid().
 start(Account, Key) ->
             gen_server:start_link(?MODULE, #state{account = Account,
                                                   key = Key,
@@ -88,7 +89,6 @@ start(Account, Key) ->
 %%====================================================================
 %% Queue
 %%====================================================================
-
 
 -spec list_queues(pid()) -> erlazure:enum_parse_result(queue()).
 list_queues(Pid) ->
