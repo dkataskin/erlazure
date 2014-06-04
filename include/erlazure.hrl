@@ -86,8 +86,8 @@
 -type enum_common_tokens() :: list(enum_common_token()).
 -export_type([enum_common_token/0, enum_common_tokens/0]).
 
--type requestParamType() :: uri | header.
--export_type([requestParamType/0]).
+-type request_param_type() :: uri | header.
+-export_type([request_param_type/0]).
 
 -record(service_context, {service :: string(),
                           api_version :: string(),
@@ -108,7 +108,7 @@
 -export_type([req_context/0]).
 
 -record(param_spec, {id :: atom(),
-                     type :: requestParamType(),
+                     type :: request_param_type(),
                      name :: string(),
                      parse_fun = fun(Value) ->
                                    lists:flatten(io_lib:format("~p", [Value]))
