@@ -69,4 +69,3 @@ get_content_length(Content) when is_list(Content) ->
 
 get_content_length(Content) when is_binary(Content) ->
                 byte_size(Content).
-

@@ -86,6 +86,7 @@ get_request_body(Message) ->
           Data = {'QueueMessage', [], [{'MessageText', [], [base64:encode_to_string(Message)]}]},
           lists:flatten(xmerl:export_simple([Data], xmerl_xml)).
 
+-spec get_request_param_specs() -> list(param_spec()).
 get_request_param_specs() ->
           [#param_spec{ id = num_of_messages, type = uri, name = "numofmessages" },
            #param_spec{ id = pop_receipt, type = uri, name = "popreceipt" },

@@ -673,6 +673,7 @@ get_headers_string(Service, Headers) ->
                 end,
                 lists:foldl(FoldFun, "", get_header_names(Service)).
 
+-spec sign_string(base64:ascii_string(), string()) -> binary().
 sign_string(Key, StringToSign) ->
                 crypto:hmac(sha256, base64:decode(Key), StringToSign).
 
@@ -682,6 +683,7 @@ build_uri_base(Service, Account) ->
 get_host(Service, Account) ->
                 Account ++ "." ++ erlang:atom_to_list(Service) ++ ".core.windows.net".
 
+-spec canonicalize_headers(list(string())) -> string().
 canonicalize_headers(Headers) ->
                 MS_Header_Names = [HeaderName || {HeaderName, _} <- Headers, string:str(HeaderName, "x-ms-") =:= 1],
                 Sorted_MS_Header_Names = lists:sort(MS_Header_Names),
