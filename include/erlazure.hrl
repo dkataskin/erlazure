@@ -57,18 +57,27 @@
 -type xmlElement() :: #xmlElement{}.
 -export_type([xmlElement/0]).
 
--type metadata() :: proplists:proplist().
--export_type([metadata/0]).
-
 -type method() :: get | post | delete | head.
 -export_type([method/0]).
 
--type request_common_opts() :: {?req_param_prefix, string()}
+-type metadata() :: proplists:proplist().
+-export_type([metadata/0]).
+
+-type request_common_opt() :: {?req_param_prefix, string()}
               | {?req_param_marker, string()}
               | {?req_param_maxresults, non_neg_integer()}
               | {?req_param_include, metadata}
               | {?req_param_timeout, non_neg_integer()}.
--export_type([request_common_opts/0]).
+-type common_opts() :: list(request_common_opt()).
+-export_type([request_common_opt/0]).
+-export_type([common_opts/0]).
+
+-type bad_response() :: {error, bad_response}.
+-type enum_parse_result(T) :: bad_response() | {ok, {list(T), metadata()}}.
+-export_type([bad_response/0]).
+-export_type([enum_parse_result/1]).
+
+
 
 -type lease_state() :: available | leased | breaking | broken | expired.
 -type lease_status() :: locked | unlocked.

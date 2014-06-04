@@ -89,10 +89,12 @@ start(Account, Key) ->
 %% Queue
 %%====================================================================
 
--spec list_queues(pid()) -> {error, bad_response} | {ok, {list(queue()), metadata()}}.
+
+-spec list_queues(pid()) -> erlazure:enum_parse_result(queue()).
 list_queues(Pid) ->
             list_queues(Pid, []).
 
+-spec list_queues(pid(), erlazure:common_opts()) -> erlazure:enum_parse_result(queue()).
 list_queues(Pid, Options) when is_list(Options) ->
             gen_server:call(Pid, {list_queues, Options}).
 
