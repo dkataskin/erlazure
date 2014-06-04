@@ -92,6 +92,7 @@ start(Account, Key) ->
 -spec list_queues(pid()) -> {error, bad_response} | {ok, {list(queue()), metadata()}}.
 list_queues(Pid) ->
             list_queues(Pid, []).
+
 list_queues(Pid, Options) when is_list(Options) ->
             gen_server:call(Pid, {list_queues, Options}).
 
@@ -811,7 +812,8 @@ get_request_param_specs() ->
 
 get_request_common_param_specs() ->
                 [#param_spec{ id = comp, type = uri, name = "comp" },
-                 #param_spec{ id = timeout, type = uri, name = "timeout" },
-                 #param_spec{ id = max_results, type = uri, name = "maxresults" },
-                 #param_spec{ id = prefix, type = uri, name = "prefix" },
-                 #param_spec{ id = marker, type = uri, name = "marker" }].
+                 #param_spec{ id = ?req_param_timeout, type = uri, name = "timeout" },
+                 #param_spec{ id = ?req_param_maxresults, type = uri, name = "maxresults" },
+                 #param_spec{ id = ?req_param_prefix, type = uri, name = "prefix" },
+                 #param_spec{ id = ?req_param_include, type = uri, name = "include" },
+                 #param_spec{ id = ?req_param_marker, type = uri, name = "marker" }].
