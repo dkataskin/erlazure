@@ -42,6 +42,7 @@ queue_test_() ->
                  fun stop/1,
                  fun (SetupData) ->
                    [create_queue(SetupData),
+                    create_queue_duplicate_name(SetupData),
                     list_queues(SetupData)]
                  end}.
 
@@ -56,6 +57,12 @@ create_queue(Pid) ->
                 QueueName = get_queue_unique_name(),
                 Response = erlazure:create_queue(Pid, QueueName),
                 ?_assertMatch({ok, created}, Response).
+
+create_queue_duplicate_name(Pid) ->
+                QueueName = get_queue_unique_name(),
+                {ok, created} = erlazure:create_queue(Pid, QueueName),
+                Response = erlazure:create_queue(Pid, QueueName),
+                ?_assertMatch({error, already_created}, Response).
 
 list_queues(Pid) ->
                 QueueName = get_queue_unique_name(),

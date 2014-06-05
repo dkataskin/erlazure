@@ -32,14 +32,15 @@
 -export([append_ticks/1, get_ticks/0, read_file/1]).
 
 append_ticks(Name) ->
-  Name ++ integer_to_list(get_ticks()).
+        Name ++ integer_to_list(get_ticks()).
 
 get_ticks() ->
-  calendar:datetime_to_gregorian_seconds(calendar:local_time()).
+        {Mega, Sec, Micro} = now(),
+        Mega * 1000000 * 1000000 + Sec * 1000000 + Micro.
 
 read_file(FileName) ->
-  {ok, Binary} = file:read_file(file_path(FileName)),
-  erlang:binary_to_list(Binary).
+        {ok, Binary} = file:read_file(file_path(FileName)),
+        erlang:binary_to_list(Binary).
 
 file_path(File) ->
-  filename:join([code:priv_dir(erlazure), responses, File]).
+        filename:join([code:priv_dir(erlazure), responses, File]).
