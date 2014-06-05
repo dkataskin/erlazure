@@ -92,12 +92,14 @@
 -export_type([request_common_opt/0]).
 -export_type([common_opts/0]).
 
--type created_response()        :: {ok, created}.
--type updated_response()        :: {ok, updated}.
--type deleted_response()        :: {ok, deleted}.
--type lease_acquired_response() :: {ok, acquired}.
--type bad_response()            :: {error, bad_response}.
+-type created_response()         :: {ok, created}.
+-type already_created_response() :: {error, already_created}.
+-type updated_response()         :: {ok, updated}.
+-type deleted_response()         :: {ok, deleted}.
+-type lease_acquired_response()  :: {ok, acquired}.
+-type bad_response()             :: {error, bad_response}.
 -export_type([bad_response/0, created_response/0, updated_response/0, deleted_response/0, lease_acquired_response/0]).
+-export_type([already_created_response/0]).
 
 -type enum_parse_result(T) :: bad_response() | {ok, {list(T), metadata()}}.
 -export_type([enum_parse_result/1]).

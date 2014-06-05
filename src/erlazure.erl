@@ -107,7 +107,7 @@ get_queue_acl(Pid, Queue) ->
 get_queue_acl(Pid, Queue, Options) when is_list(Options) ->
             gen_server:call(Pid, {get_queue_acl, Queue, Options}).
 
--spec create_queue(pid(), string()) -> created_response().
+-spec create_queue(pid(), string()) -> created_response() | already_created_response().
 create_queue(Pid, Queue) ->
             create_queue(Pid, Queue, []).
 
@@ -285,8 +285,13 @@ handle_call({create_queue, Queue, Options}, _From, State) ->
                                                     [],
                                                     Options),
 
-            {?http_created, _Body} = execute_request(ServiceContext, RequestContext),
-            {reply, {ok, created}, State};
+            {Code, _Body} = execute_request(ServiceContext, RequestContext),
+            case Code of
+              ?http_created ->
+                {reply, {ok, created}, State};
+              ?http_no_content ->
+                {reply, {error, already_created}, State}
+            end;
 
 % Delete queue
 handle_call({delete_queue, Queue, Options}, _From, State) ->
