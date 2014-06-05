@@ -36,11 +36,33 @@
 %% API
 -export([]).
 
-create_queue_test() ->
-                Pid = erlazure:start(?account_name, ?account_key),
+queue_test_() ->
+                {setup,
+                 fun start/0,
+                 fun stop/1,
+                 fun (SetupData) ->
+                   [create_queue(SetupData),
+                    list_queues(SetupData)]
+                 end}.
+
+start() ->
+    {ok, Pid} = erlazure:start(?account_name, ?account_key),
+    Pid.
+
+stop(_Pid) ->
+    ok.
+
+create_queue(Pid) ->
                 QueueName = get_queue_unique_name(),
                 Response = erlazure:create_queue(Pid, QueueName),
-                ?assertMatch({ok, created}, Response).
+                ?_assertMatch({ok, created}, Response).
+
+list_queues(Pid) ->
+                QueueName = get_queue_unique_name(),
+                {ok, created} = erlazure:create_queue(Pid, QueueName),
+                {ok, {Queues, _Metadata}} = erlazure:list_queues(Pid),
+                Queue = lists:keyfind(QueueName, 2, Queues),
+                ?_assertMatch(#queue { name = QueueName }, Queue).
 
 get_queue_unique_name() ->
                 test_utils:append_ticks("TestQueue").

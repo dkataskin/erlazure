@@ -260,7 +260,7 @@ handle_call({list_queues, Options}, _From, State) ->
                                                     Options),
 
             {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
-            {ok, ParseResult} = erlazure_queue:parse_queue_list(Body),
+            ParseResult = erlazure_queue:parse_queue_list(Body),
             {reply, ParseResult, State};
 
 % Get queue acl
