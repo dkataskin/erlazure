@@ -80,7 +80,7 @@
 %% API
 %%====================================================================
 
--spec start(string(), string()) -> pid().
+-spec start(string(), string()) -> {ok, pid()}.
 start(Account, Key) ->
             gen_server:start_link(?MODULE, #state{account = Account,
                                                   key = Key,
