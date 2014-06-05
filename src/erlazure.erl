@@ -90,21 +90,27 @@ start(Account, Key) ->
 %% Queue
 %%====================================================================
 
--spec list_queues(pid()) -> erlazure:enum_parse_result(queue()).
+-spec list_queues(pid()) -> enum_parse_result(queue()).
 list_queues(Pid) ->
             list_queues(Pid, []).
 
--spec list_queues(pid(), erlazure:common_opts()) -> erlazure:enum_parse_result(queue()).
+-spec list_queues(pid(), common_opts()) -> enum_parse_result(queue()).
 list_queues(Pid, Options) when is_list(Options) ->
             gen_server:call(Pid, {list_queues, Options}).
 
+-spec get_queue_acl(pid(), string()) -> signed_id().
 get_queue_acl(Pid, Queue) ->
             get_queue_acl(Pid, Queue, []).
+
+-type get_queue_acl_opts() :: req_param_timeout() | req_param_clientrequestid().
+-spec get_queue_acl(pid(), string(), list(get_queue_acl_opts())) -> signed_id().
 get_queue_acl(Pid, Queue, Options) when is_list(Options) ->
             gen_server:call(Pid, {get_queue_acl, Queue, Options}).
 
+-spec create_queue(pid(), string()) -> created_response().
 create_queue(Pid, Queue) ->
             create_queue(Pid, Queue, []).
+
 create_queue(Pid, Queue, Options) when is_list(Options) ->
             gen_server:call(Pid, {create_queue, Queue, Options}).
 

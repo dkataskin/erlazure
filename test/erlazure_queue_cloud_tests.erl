@@ -25,35 +25,22 @@
 %% ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 %% POSSIBILITY OF SUCH DAMAGE.
 
--module(erlazure_queue_tests).
--compile(export_all).
-
+-module(erlazure_queue_cloud_tests).
 -author("Dmitry Kataskin").
+
+-compile(export_all).
 
 -include("erlazure.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
-parse_list_queues_response_test() ->
-                Response = test_utils:read_file("list_queues.xml"),
-                {ok, ParseResult} = erlazure_queue:parse_queue_list(Response),
+%% API
+-export([]).
 
-                ?assertMatch({[#queue{
-                                  name =  "Queue 1",
-                                  url = "http://queue1.queue.core.windows.net",
-                                  metadata = [{'metadata-name',"first metadata item"}]}],
-                              [{prefix, "Test prefix value"},
-                               {marker, "Test marker value"},
-                               {max_results, 154},
-                               {next_marker, ""}]}, ParseResult).
+create_queue_test() ->
+                Pid = erlazure:start(?account_name, ?account_key),
+                QueueName = get_queue_unique_name(),
+                Response = erlazure:create_queue(Pid, QueueName),
+                ?assertMatch({ok, created}, Response).
 
-parse_list_messages_response_test() ->
-                Response = test_utils:read_file("list_queue_messages.xml"),
-                {ok, ParseResult} = erlazure_queue:parse_queue_messages_list(Response),
-                ?assertMatch([#queue_message{
-                                  id = "4e3a2035-845a-425e-9324-fae325b27feb",
-                                  insertion_time = "Wed, 30 Apr 2014 05:53:53 GMT",
-                                  exp_time = "Wed, 07 May 2014 05:53:53 GMT",
-                                  pop_receipt = "AgAAAAMAAAAAAAAAClo5VTlkzwE=",
-                                  next_visible = "Wed, 30 Apr 2014 05:59:22 GMT",
-                                  dequeue_count = 3,
-                                  text = "dafasdf\r\nasdfa\r\nsdfa\r\nsdf\r\nas\r\nd\r\nas\r\ndf\r\nasdf"}], ParseResult).
+get_queue_unique_name() ->
+                test_utils:append_ticks("TestQueue").

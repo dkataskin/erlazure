@@ -54,6 +54,11 @@
 -define(PRINT(Var), io:format("DEBUG: ~p:~p - ~p~n~n ~p~n~n", [?MODULE, ?LINE, ??Var, Var])).
 -endif.
 
+-ifdef(TEST).
+-define(account_name, "<account name>").
+-define(account_key, "<account key>").
+-endif.
+
 %% Types
 -type xmlElement() :: #xmlElement{}.
 -export_type([xmlElement/0]).
