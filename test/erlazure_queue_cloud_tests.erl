@@ -30,46 +30,55 @@
 
 -compile(export_all).
 
+-define(DEBUG, true).
+
 -include("erlazure.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 %% API
 -export([]).
 
-queue_test_() ->
+create_queue_test_() ->
                 {setup,
                  fun start/0,
                  fun stop/1,
-                 fun (SetupData) ->
-                   [create_queue(SetupData),
-                    create_queue_duplicate_name(SetupData),
-                    list_queues(SetupData)]
-                 end}.
+                 fun create_queue/1}.
+
+create_queue_duplicate_name_test_() ->
+                {setup,
+                 fun start/0,
+                 fun stop/1,
+                 fun create_queue_duplicate_name/1}.
+
+list_queues_test_() ->
+                {setup,
+                 fun start/0,
+                 fun stop/1,
+                 fun list_queues/1}.
 
 start() ->
     {ok, Pid} = erlazure:start(?account_name, ?account_key),
-    Pid.
+    UniqueQueueName = get_queue_unique_name(),
+    {Pid, UniqueQueueName}.
 
-stop(_Pid) ->
-    ok.
+stop({Pid, QueueName}) ->
+                erlazure:delete_queue(Pid, QueueName).
 
-create_queue(Pid) ->
-                QueueName = get_queue_unique_name(),
+create_queue({Pid, QueueName}) ->
                 Response = erlazure:create_queue(Pid, QueueName),
                 ?_assertMatch({ok, created}, Response).
 
-create_queue_duplicate_name(Pid) ->
-                QueueName = get_queue_unique_name(),
+create_queue_duplicate_name({Pid, QueueName}) ->
                 {ok, created} = erlazure:create_queue(Pid, QueueName),
                 Response = erlazure:create_queue(Pid, QueueName),
                 ?_assertMatch({error, already_created}, Response).
 
-list_queues(Pid) ->
-                QueueName = get_queue_unique_name(),
+list_queues({Pid, QueueName}) ->
+                LowerQueueName = string:to_lower(QueueName),
                 {ok, created} = erlazure:create_queue(Pid, QueueName),
                 {ok, {Queues, _Metadata}} = erlazure:list_queues(Pid),
-                Queue = lists:keyfind(QueueName, 2, Queues),
-                ?_assertMatch(#queue { name = QueueName }, Queue).
+                Queue = lists:keyfind(LowerQueueName, 2, Queues),
+                ?_assertMatch(#queue { name = LowerQueueName }, Queue).
 
 get_queue_unique_name() ->
                 test_utils:append_ticks("TestQueue").
