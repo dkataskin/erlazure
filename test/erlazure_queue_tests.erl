@@ -57,3 +57,12 @@ parse_list_messages_response_test() ->
                                   next_visible = "Wed, 30 Apr 2014 05:59:22 GMT",
                                   dequeue_count = 3,
                                   text = "dafasdf\r\nasdfa\r\nsdfa\r\nsdf\r\nas\r\nd\r\nas\r\ndf\r\nasdf"}], ParseResult).
+
+parse_queue_acl_test() ->
+                Response = test_utils:read_file("get_queue_acl.xml"),
+                {ok, ParseResult} = erlazure_queue:parse_queue_acl_response(Response),
+                ?assertMatch(#signed_id { id = "12345678901234567890123456789012",
+                                          access_policy = #access_policy { start = "2009-09-28T08:49:37.0000000Z",
+                                                                           expiry = "2009-10-29T08:49:37.0000000Z",
+                                                                           permission = "raup" }},
+                             ParseResult).

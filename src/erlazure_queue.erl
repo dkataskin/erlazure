@@ -96,12 +96,12 @@ parse_queue_acl_response(Response) when is_list(Response) ->
                   Nodes = erlazure_xml:filter_elements(SignedIdNode#xmlElement.content),
                   FoldFun = fun(Elem=#xmlElement{}, SignedId=#signed_id{}) ->
                               case Elem#xmlElement.name of
-                                'Id' -> SignedId#signed_id { id = base64:decode(erlazure_xml:parse_str(Elem#xmlElement.content)) };
+                                'Id' -> SignedId#signed_id { id = base64:decode_to_string(erlazure_xml:parse_str(Elem)) };
                                 'AccessPolicy' -> SignedId#signed_id { access_policy = parse_access_policy(Elem) };
                                 _ -> SignedId
                               end
                             end,
-                  lists:foldl(FoldFun, #signed_id{}, Nodes)
+                  {ok, lists:foldl(FoldFun, #signed_id{}, Nodes)}
               end;
             _ ->
               {error, bad_response}
