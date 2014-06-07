@@ -46,31 +46,37 @@ create_queue_test_() ->
 
 create_queue_duplicate_name_test_() ->
                 {setup,
-                 fun start/0,
+                 fun start_create/0,
                  fun stop/1,
                  fun create_queue_duplicate_name/1}.
 
 list_queues_test_() ->
                 {setup,
-                 fun start/0,
+                 fun start_create/0,
                  fun stop/1,
                  fun list_queues/1}.
 
 delete_queue_test_() ->
                 {setup,
-                 fun start/0,
+                 fun start_create/0,
                  fun stop/1,
                  fun delete_queue/1}.
 
 delete_queue_twice_test_() ->
                 {setup,
-                 fun start/0,
+                 fun start_create/0,
                  fun stop/1,
                  fun delete_queue_twice/1}.
 
+get_queue_acl_test_() ->
+                {setup,
+                  fun start_create/0,
+                  fun stop/1,
+                  fun get_queue_acl/1}.
+
 put_message_test_() ->
                 {setup,
-                 fun start/0,
+                 fun start_create/0,
                  fun stop/1,
                  fun put_message/1}.
 
@@ -78,6 +84,12 @@ start() ->
     {ok, Pid} = erlazure:start(?account_name, ?account_key),
     UniqueQueueName = get_queue_unique_name(),
     {Pid, UniqueQueueName}.
+
+start_create() ->
+                {ok, Pid} = erlazure:start(?account_name, ?account_key),
+                UniqueQueueName = get_queue_unique_name(),
+                {ok, created} = erlazure:create_queue(Pid, UniqueQueueName),
+                {Pid, UniqueQueueName}.
 
 stop({Pid, QueueName}) ->
                 erlazure:delete_queue(Pid, QueueName).
@@ -87,30 +99,29 @@ create_queue({Pid, QueueName}) ->
                 ?_assertMatch({ok, created}, Response).
 
 create_queue_duplicate_name({Pid, QueueName}) ->
-                {ok, created} = erlazure:create_queue(Pid, QueueName),
                 Response = erlazure:create_queue(Pid, QueueName),
                 ?_assertMatch({error, already_created}, Response).
 
 list_queues({Pid, QueueName}) ->
                 LowerQueueName = string:to_lower(QueueName),
-                {ok, created} = erlazure:create_queue(Pid, QueueName),
                 {ok, {Queues, _Metadata}} = erlazure:list_queues(Pid),
                 Queue = lists:keyfind(LowerQueueName, 2, Queues),
                 ?_assertMatch(#queue { name = LowerQueueName }, Queue).
 
 delete_queue({Pid, QueueName}) ->
-                {ok, created} = erlazure:create_queue(Pid, QueueName),
                 Response = erlazure:delete_queue(Pid, QueueName),
                 ?_assertMatch({ok, deleted}, Response).
 
 delete_queue_twice({Pid, QueueName}) ->
-                {ok, created} = erlazure:create_queue(Pid, QueueName),
                 {ok, deleted} = erlazure:delete_queue(Pid, QueueName),
                 Response = erlazure:delete_queue(Pid, QueueName),
                 ?_assertMatch({ok, deleted}, Response).
 
+get_queue_acl({Pid, QueueName}) ->
+                Response = erlazure:get_queue_acl(Pid, QueueName),
+                ?_assertMatch(<<"acl">>, Response).
+
 put_message({Pid, QueueName}) ->
-                {ok, created} = erlazure:create_queue(Pid, QueueName),
                 Response = erlazure:put_message(Pid, QueueName, "test message"),
                 ?_assertMatch({ok, created}, Response).
 

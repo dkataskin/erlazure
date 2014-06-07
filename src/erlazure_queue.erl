@@ -35,7 +35,8 @@
 -include("erlazure.hrl").
 
 %% API
--export([parse_queue_list/1, parse_queue_messages_list/1, get_request_body/1, get_request_param_specs/0]).
+-export([parse_queue_list/1, parse_queue_messages_list/1, get_request_body/1, get_request_param_specs/0,
+         parse_queue_acl_response/1]).
 
 parse_queue_messages_list(Response) when is_binary(Response) ->
           parse_queue_messages_list(erlang:binary_to_list(Response));
@@ -81,6 +82,42 @@ parse_queue_response(#xmlElement { content = Content }) ->
             end
           end,
           lists:foldl(FoldFun, #queue{}, Nodes).
+
+parse_queue_acl_response(Response) when is_binary(Response) ->
+          parse_queue_acl_response(binary_to_list(Response));
+
+parse_queue_acl_response(Response) when is_list(Response) ->
+          {ParseResult, _} = xmerl_scan:string(Response),
+          case ParseResult#xmlElement.name of
+            'SignedIdentifiers' ->
+              case lists:keyfind('SignedIdentifier', 2, ParseResult#xmlElement.content) of
+                false -> {error, bad_response};
+                SignedIdNode ->
+                  Nodes = erlazure_xml:filter_elements(SignedIdNode#xmlElement.content),
+                  FoldFun = fun(Elem=#xmlElement{}, SignedId=#signed_id{}) ->
+                              case Elem#xmlElement.name of
+                                'Id' -> SignedId#signed_id { id = base64:decode(erlazure_xml:parse_str(Elem#xmlElement.content)) };
+                                'AccessPolicy' -> SignedId#signed_id { access_policy = parse_access_policy(Elem) };
+                                _ -> SignedId
+                              end
+                            end,
+                  lists:foldl(FoldFun, #signed_id{}, Nodes)
+              end;
+            _ ->
+              {error, bad_response}
+          end.
+
+parse_access_policy(XmlElement=#xmlElement{}) ->
+          Nodes = erlazure_xml:filter_elements(XmlElement#xmlElement.content),
+          FoldFun = fun(Elem=#xmlElement{}, AccessPolicy=#access_policy{}) ->
+                      case Elem#xmlElement.name of
+                        'Start' -> AccessPolicy#access_policy { start = erlazure_xml:parse_str(Elem) };
+                        'Expiry' -> AccessPolicy#access_policy { expiry = erlazure_xml:parse_str(Elem) };
+                        'Permission' -> AccessPolicy#access_policy { permission = erlazure_xml:parse_str(Elem) };
+                        _ -> AccessPolicy
+                      end
+                    end,
+          lists:foldl(FoldFun, #access_policy{}, Nodes).
 
 get_request_body(Message) ->
           Data = {'QueueMessage', [], [{'MessageText', [], [base64:encode_to_string(Message)]}]},
