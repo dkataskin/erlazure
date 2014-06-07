@@ -119,7 +119,7 @@ delete_queue_twice({Pid, QueueName}) ->
 
 get_queue_acl({Pid, QueueName}) ->
                 Response = erlazure:get_queue_acl(Pid, QueueName),
-                ?_assertMatch(#signed_id  { id = "12345" }, Response).
+                ?_assertMatch({ok, no_acl}, Response).
 
 put_message({Pid, QueueName}) ->
                 Response = erlazure:put_message(Pid, QueueName, "test message"),

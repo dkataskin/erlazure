@@ -277,12 +277,8 @@ handle_call({get_queue_acl, Queue, Options}, _From, State) ->
                                                     Options),
 
             {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
-            case erlazure_queue:parse_queue_acl_response(Body) of
-              {error, Reason} ->
-                {reply, {error, Reason}, State};
-              QueueAcl ->
-                {reply, {ok, QueueAcl}, State}
-            end;
+            ParseResult = erlazure_queue:parse_queue_acl_response(Body),
+            {reply, ParseResult, State};
 
 % Create queue
 handle_call({create_queue, Queue, Options}, _From, State) ->

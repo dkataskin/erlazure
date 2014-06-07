@@ -87,11 +87,12 @@ parse_queue_acl_response(Response) when is_binary(Response) ->
           parse_queue_acl_response(binary_to_list(Response));
 
 parse_queue_acl_response(Response) when is_list(Response) ->
+          ?PRINT(Response),
           {ParseResult, _} = xmerl_scan:string(Response),
           case ParseResult#xmlElement.name of
             'SignedIdentifiers' ->
               case lists:keyfind('SignedIdentifier', 2, ParseResult#xmlElement.content) of
-                false -> {error, bad_response};
+                false -> {ok, no_acl};
                 SignedIdNode ->
                   Nodes = erlazure_xml:filter_elements(SignedIdNode#xmlElement.content),
                   FoldFun = fun(Elem=#xmlElement{}, SignedId=#signed_id{}) ->
