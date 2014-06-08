@@ -1,6 +1,6 @@
 {application, erlazure,
   [{description, "Windows Azure Erlang bindings"},
-    {vsn, "1"},
+    {vsn, "0.2"},
     {modules, []},
     {registered, []},
     {applications, [kernel, stdlib, crypto, inets, ssl]},

@@ -35,7 +35,7 @@
 -include("erlazure.hrl").
 
 %% API
--export([parse_queue_list/1, parse_queue_messages_list/1, get_request_body/1, get_request_param_specs/0,
+-export([parse_queue_list/1, parse_queue_messages_list/1, get_request_body/2, get_request_param_specs/0,
          parse_queue_acl_response/1]).
 
 parse_queue_messages_list(Response) when is_binary(Response) ->
@@ -120,8 +120,18 @@ parse_access_policy(XmlElement=#xmlElement{}) ->
                     end,
           lists:foldl(FoldFun, #access_policy{}, Nodes).
 
-get_request_body(Message) ->
+get_request_body(put_message, Message) ->
           Data = {'QueueMessage', [], [{'MessageText', [], [base64:encode_to_string(Message)]}]},
+          lists:flatten(xmerl:export_simple([Data], xmerl_xml));
+
+get_request_body(set_queue_acl, SignedId=#signed_id{}) ->
+          Start = {'Start', [], [SignedId#signed_id.access_policy#access_policy.start] },
+          Expiry = {'Expiry', [], [SignedId#signed_id.access_policy#access_policy.expiry] },
+          Permission = {'Permission', [], [SignedId#signed_id.access_policy#access_policy.permission] },
+          AccessPolicy = {'AccessPolicy', [], [Start, Expiry, Permission]},
+          Id = {'Id', [], [base64:encode_to_string(SignedId#signed_id.id)]},
+          SignedIdentifier = {'SignedIdentifier', [], [Id, AccessPolicy]},
+          Data = {'SignedIdentifiers', [], [SignedIdentifier]},
           lists:flatten(xmerl:export_simple([Data], xmerl_xml)).
 
 -spec get_request_param_specs() -> list(param_spec()).
