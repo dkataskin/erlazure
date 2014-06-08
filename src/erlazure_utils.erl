@@ -39,7 +39,6 @@
 % YYYY-MM-DD
 % YYYY-MM-DDThh:mmTZD
 % YYYY-MM-DDThh:mm:ssTZD
-% YYYY-MM-DDThh:mm:ss.ffffffTZD
 iso_8601_fmt({Year, Month, Day}) ->
                 Fmt = io_lib:format("~4.10.0B-~2.10.0B-~2.10.0B", [Year, Month, Day]),
                 lists:flatten(Fmt);
