@@ -1,4 +1,4 @@
-##erlazure
+##erlazure (v0.2)
 
 Erlazure is a library for accessing Windows Azure Storage Services. The API is subject to change.
 
