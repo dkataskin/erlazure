@@ -87,7 +87,6 @@ parse_queue_acl_response(Response) when is_binary(Response) ->
           parse_queue_acl_response(binary_to_list(Response));
 
 parse_queue_acl_response(Response) when is_list(Response) ->
-          ?PRINT(Response),
           {ParseResult, _} = xmerl_scan:string(Response),
           case ParseResult#xmlElement.name of
             'SignedIdentifiers' ->
