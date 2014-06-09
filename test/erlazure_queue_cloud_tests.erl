@@ -110,6 +110,12 @@ get_messages_removes_from_queue_test_() ->
                   fun stop/1,
                   fun get_messages_removes_from_queue/1}.
 
+peek_message_test_() ->
+                {setup,
+                  fun start_create/0,
+                  fun stop/1,
+                  fun peek_message/1}.
+
 peek_messages_test_() ->
                 {setup,
                   fun start_create/0,
@@ -201,10 +207,18 @@ get_messages_removes_from_queue({Pid, QueueName}) ->
                 {ok, Messages} = erlazure:get_messages(Pid, QueueName, [{num_of_messages, 32}]),
                 ?_assertMatch([], Messages).
 
-peek_messages({Pid, QueueName}) ->
-                {ok, created} = erlazure:put_message(Pid, QueueName, "test message"),
+peek_message({Pid, QueueName}) ->
+                {ok, created} = erlazure:put_message(Pid, QueueName, "test message 1"),
+                {ok, created} = erlazure:put_message(Pid, QueueName, "test message 2"),
                 Response = erlazure:peek_messages(Pid, QueueName),
-                ?_assertMatch({ok, [#queue_message { text = "test message" }]}, Response).
+                ?_assertMatch({ok, [#queue_message { text = "test message 1" }]}, Response).
+
+peek_messages({Pid, QueueName}) ->
+                {ok, created} = erlazure:put_message(Pid, QueueName, "test message 1"),
+                {ok, created} = erlazure:put_message(Pid, QueueName, "test message 2"),
+                {ok, created} = erlazure:put_message(Pid, QueueName, "test message 3"),
+                {ok, Messages} = erlazure:peek_messages(Pid, QueueName, [{num_of_messages, 32}]),
+                ?_assertEqual(3, lists:flatlength(Messages)).
 
 get_queue_unique_name() ->
                 test_utils:append_ticks("TestQueue").
