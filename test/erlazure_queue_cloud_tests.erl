@@ -92,6 +92,12 @@ put_message_test_() ->
                   fun stop/1,
                   fun put_message/1}.
 
+get_message_test_() ->
+                {setup,
+                  fun start_create/0,
+                  fun stop/1,
+                  fun get_message/1}.
+
 start() ->
     {ok, Pid} = erlazure:start(?account_name, ?account_key),
     UniqueQueueName = get_queue_unique_name(),
@@ -156,6 +162,11 @@ get_queue_acl({Pid, QueueName}) ->
 put_message({Pid, QueueName}) ->
                 Response = erlazure:put_message(Pid, QueueName, "test message"),
                 ?_assertMatch({ok, created}, Response).
+
+get_message({Pid, QueueName}) ->
+                {ok, created} = erlazure:put_message(Pid, QueueName, "test message"),
+                Response = erlazure:get_messages(Pid, QueueName),
+                ?_assertMatch({ok, [#queue_message { text = "test message"}]}, Response).
 
 get_queue_unique_name() ->
                 test_utils:append_ticks("TestQueue").
