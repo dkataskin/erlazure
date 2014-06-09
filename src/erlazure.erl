@@ -404,7 +404,7 @@ handle_call({update_message, Queue, UpdatedMessage=#queue_message{}, VisibilityT
                                                         State,
                                                         put,
                                                         string:to_lower(Queue) ++ "/messages/" ++ UpdatedMessage#queue_message.id,
-                                                        erlazure_queue:get_request_body(UpdatedMessage#queue_message.text),
+                                                        erlazure_queue:get_request_body(update_message, UpdatedMessage#queue_message.text),
                                                         Parameters,
                                                         Options),
 

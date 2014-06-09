@@ -119,6 +119,9 @@ parse_access_policy(XmlElement=#xmlElement{}) ->
                     end,
           lists:foldl(FoldFun, #access_policy{}, Nodes).
 
+get_request_body(update_message, Message) ->
+          get_request_body(put_message, Message);
+
 get_request_body(put_message, Message) ->
           Data = {'QueueMessage', [], [{'MessageText', [], [base64:encode_to_string(Message)]}]},
           lists:flatten(xmerl:export_simple([Data], xmerl_xml));
