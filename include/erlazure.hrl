@@ -38,7 +38,7 @@
 
 -define(queue_service_ver, "2014-02-14").
 -define(blob_service_ver, "2012-02-12").
--define(table_service_ver, "2012-02-12").
+-define(table_service_ver, "2014-02-14").
 
 %% Request common parameters
 -define(req_param_prefix, prefix).
