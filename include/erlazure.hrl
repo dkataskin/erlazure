@@ -36,7 +36,7 @@
 -define(table_service, table).
 -define(queue_service, queue).
 
--define(queue_service_ver, "2012-02-12").
+-define(queue_service_ver, "2014-02-14").
 -define(blob_service_ver, "2012-02-12").
 -define(table_service_ver, "2012-02-12").
 
@@ -55,8 +55,8 @@
 -endif.
 
 -ifdef(TEST).
--define(account_name, "<account name>").
--define(account_key, "<account key>").
+-define(account_name, "strg1").
+-define(account_key, "52l7Z+HPjdMrDliXEm5fnfPO5UVhQsVrEnrPHS+WuZKo13eZr52Iu3Z0qL5HkqcbIIP2kax6Rw7MvSUpUmtdIA==").
 -endif.
 
 %% Types
