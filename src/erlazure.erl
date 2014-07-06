@@ -259,23 +259,21 @@ init({Account, Key}) ->
 % List queues
 handle_call({list_queues, Options}, _From, State) ->
         ServiceContext = new_service_context(?queue_service, State),
-        RequestContext = new_req_context(?queue_service,
-                                                State,
-                                                [{comp, list}],
-                                                Options),
+        ReqOptions = [{params, [{comp, list}] ++ Options}],
+        ReqContext = new_req_context(?queue_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
+        {?http_ok, Body} = execute_request(ServiceContext, ReqContext),
         ParseResult = erlazure_queue:parse_queue_list(Body),
         {reply, ParseResult, State};
 
 % Set queue acl
 handle_call({set_queue_acl, Queue, SignedId=#signed_id{}, Options}, _From, State) ->
         ServiceContext = new_service_context(?queue_service, State),
-        Options = [{method, put},
-                   {path, string:to_lower(Queue)},
-                   {body, erlazure_queue:get_request_body(set_queue_acl, SignedId)},
-                   {parameters, [{comp, acl}]}],
-        ReqContext = new_req_context(?queue_service, State#state.account, State#state.param_specs, Options),
+        ReqOptions = [{method, put},
+                      {path, string:to_lower(Queue)},
+                      {body, erlazure_queue:get_request_body(set_queue_acl, SignedId)},
+                      {params, [{comp, acl}] ++ Options}],
+        ReqContext = new_req_context(?queue_service, State#state.account, State#state.param_specs, ReqOptions),
 
         {?http_no_content, _Body} = execute_request(ServiceContext, ReqContext),
         {reply, {ok, created}, State};
@@ -283,11 +281,9 @@ handle_call({set_queue_acl, Queue, SignedId=#signed_id{}, Options}, _From, State
 % Get queue acl
 handle_call({get_queue_acl, Queue, Options}, _From, State) ->
         ServiceContext = new_service_context(?queue_service, State),
-        ReqContext = new_req_context(?queue_service,
-                                                State,
-                                                string:to_lower(Queue),
-                                                [{comp, acl}],
-                                                Options),
+        ReqOptions = [{path, string:to_lower(Queue)},
+                      {params, [{comp, acl}] ++ Options}],
+        ReqContext = new_req_context(?queue_service, State#state.account, State#state.param_specs, ReqOptions),
 
         {?http_ok, Body} = execute_request(ServiceContext, ReqContext),
         ParseResult = erlazure_queue:parse_queue_acl_response(Body),
@@ -296,14 +292,12 @@ handle_call({get_queue_acl, Queue, Options}, _From, State) ->
 % Create queue
 handle_call({create_queue, Queue, Options}, _From, State) ->
         ServiceContext = new_service_context(?queue_service, State),
-        RequestContext = new_req_context(?queue_service,
-                                                State,
-                                                put,
-                                                string:to_lower(Queue),
-                                                [],
-                                                Options),
+        ReqOptions = [{method, put},
+                      {path, string:to_lower(Queue)},
+                      {params, Options}],
+        ReqContext = new_req_context(?queue_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {Code, _Body} = execute_request(ServiceContext, RequestContext),
+        {Code, _Body} = execute_request(ServiceContext, ReqContext),
         case Code of
           ?http_created ->
             {reply, {ok, created}, State};
@@ -314,28 +308,24 @@ handle_call({create_queue, Queue, Options}, _From, State) ->
 % Delete queue
 handle_call({delete_queue, Queue, Options}, _From, State) ->
         ServiceContext = new_service_context(?queue_service, State),
-        RequestContext = new_req_context(?queue_service,
-                                                State,
-                                                delete,
-                                                string:to_lower(Queue),
-                                                [],
-                                                Options),
+        ReqOptions = [{method, delete},
+                      {path, string:to_lower(Queue)},
+                      {params, Options}],
+        ReqContext = new_req_context(?queue_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_no_content, _Body} = execute_request(ServiceContext, RequestContext),
+        {?http_no_content, _Body} = execute_request(ServiceContext, ReqContext),
         {reply, {ok, deleted}, State};
 
 % Add message to a queue
 handle_call({put_message, Queue, Message, Options}, _From, State) ->
         ServiceContext = new_service_context(?queue_service, State),
-        RequestContext = new_req_context(?queue_service,
-                                                State,
-                                                post,
-                                                string:to_lower(Queue) ++ "/messages",
-                                                erlazure_queue:get_request_body(put_message, Message),
-                                                [],
-                                                Options),
+        ReqOptions = [{method, post},
+                      {path, lists:concat([string:to_lower(Queue), "/messages"])},
+                      {body, erlazure_queue:get_request_body(put_message, Message)},
+                      {params, Options}],
+        ReqContext = new_req_context(?queue_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_created, _Body} = execute_request(ServiceContext, RequestContext),
+        {?http_created, _Body} = execute_request(ServiceContext, ReqContext),
         {reply, {ok, created}, State};
 
 % Get messages from the queue
