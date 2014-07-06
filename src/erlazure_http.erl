@@ -39,33 +39,34 @@ verb_to_str(post) -> "POST";
 verb_to_str(head) -> "HEAD";
 verb_to_str(delete) -> "DELETE".
 
-create_request(RequestContext = #req_context{ method = get }, Headers) ->
-                {construct_url(RequestContext), Headers};
+create_request(ReqContext = #req_context{ method = get }, Headers) ->
+        {construct_url(ReqContext), Headers};
 
-create_request(RequestContext = #req_context{ method = delete }, Headers) ->
-                {construct_url(RequestContext), Headers};
+create_request(ReqContext = #req_context{ method = delete }, Headers) ->
+        {construct_url(ReqContext), Headers};
 
-create_request(RequestContext = #req_context{}, Headers) ->
-                {construct_url(RequestContext),
-                 Headers,
-                 RequestContext#req_context.content_type,
-                 RequestContext#req_context.body}.
+create_request(ReqContext = #req_context{}, Headers) ->
+        {construct_url(ReqContext),
+         Headers,
+         ReqContext#req_context.content_type,
+         ReqContext#req_context.body}.
 
-construct_url(RequestContext = #req_context{}) ->
-                FoldFun = fun({ParamName, ParamValue}, Acc) ->
-                  if Acc =:= "" ->
-                    "?" ++ ParamName ++ "=" ++ ParamValue;
-                    true ->
-                      Acc ++"&" ++ ParamName ++ "=" ++ ParamValue
-                  end
-                end,
+construct_url(ReqContext = #req_context{}) ->
+        FoldFun = fun({ParamName, ParamValue}, Acc) ->
+          if Acc =:= "" ->
+            lists:concat(["?", ParamName, "=", ParamValue]);
 
-                RequestContext#req_context.address ++
-                RequestContext#req_context.path ++
-                lists:foldl(FoldFun, "", RequestContext#req_context.parameters).
+            true ->
+              lists:concat([Acc, "&", ParamName, "=", ParamValue])
+          end
+        end,
+
+        ReqContext#req_context.address ++
+        ReqContext#req_context.path ++
+        lists:foldl(FoldFun, "", ReqContext#req_context.parameters).
 
 get_content_length(Content) when is_list(Content) ->
-                lists:flatlength(Content);
+        lists:flatlength(Content);
 
 get_content_length(Content) when is_binary(Content) ->
-                byte_size(Content).
+        byte_size(Content).

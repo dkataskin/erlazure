@@ -40,15 +40,15 @@
 % YYYY-MM-DDThh:mmTZD
 % YYYY-MM-DDThh:mm:ssTZD
 iso_8601_fmt({Year, Month, Day}) ->
-                Fmt = io_lib:format("~4.10.0B-~2.10.0B-~2.10.0B", [Year, Month, Day]),
-                lists:flatten(Fmt);
+        Fmt = io_lib:format("~4.10.0B-~2.10.0B-~2.10.0B", [Year, Month, Day]),
+        lists:flatten(Fmt);
 
 iso_8601_fmt({{Year, Month, Day}, {Hour, Min}}) ->
-                Fmt = io_lib:format("~4.10.0B-~2.10.0B-~2.10.0BT~2.10.0B:~2.10.0BZ",
-                                    [Year, Month, Day, Hour, Min]),
-                lists:flatten(Fmt);
+        Fmt = io_lib:format("~4.10.0B-~2.10.0B-~2.10.0BT~2.10.0B:~2.10.0BZ",
+                            [Year, Month, Day, Hour, Min]),
+        lists:flatten(Fmt);
 
 iso_8601_fmt({{Year, Month, Day}, {Hour, Min, Sec}}) ->
-                Fmt = io_lib:format("~4.10.0B-~2.10.0B-~2.10.0BT~2.10.0B:~2.10.0B:~2.10.0BZ",
-                                    [Year, Month, Day, Hour, Min, Sec]),
-                lists:flatten(Fmt).
+        Fmt = io_lib:format("~4.10.0B-~2.10.0B-~2.10.0BT~2.10.0B:~2.10.0B:~2.10.0BZ",
+                            [Year, Month, Day, Hour, Min, Sec]),
+        lists:flatten(Fmt).

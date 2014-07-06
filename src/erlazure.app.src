@@ -4,5 +4,5 @@
     {modules, []},
     {registered, []},
     {applications, [kernel, stdlib, crypto, inets, ssl]},
-    {mod, {erlazure, []}},
+    {mod, {erlazure_app, []}},
     {env, []}]}.
