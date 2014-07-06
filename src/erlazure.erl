@@ -75,7 +75,7 @@
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
--record(state, {account="", key="", options=[], param_specs =[]}).
+-record(state, { account="", key="", options=[], param_specs =[] }).
 
 %%====================================================================
 %% API
@@ -83,9 +83,7 @@
 
 -spec start(string(), string()) -> {ok, pid()}.
 start(Account, Key) ->
-        gen_server:start_link(?MODULE, #state{ account = Account,
-                                               key = Key,
-                                               param_specs = get_req_param_specs()}, []).
+        gen_server:start_link(?MODULE, {Account, Key}, []).
 
 %%====================================================================
 %% Queue
@@ -253,11 +251,10 @@ get_tables(Pid, Options) ->
 %% gen_server callbacks
 %%====================================================================
 
-init(State) ->
-        crypto:start(),
-        inets:start(),
-        ssl:start(),
-        {ok, State}.
+init({Account, Key}) ->
+        {ok, #state { account = Account,
+                      key = Key,
+                      param_specs = get_req_param_specs() }}.
 
 % List queues
 handle_call({list_queues, Options}, _From, State) ->
@@ -278,21 +275,21 @@ handle_call({set_queue_acl, Queue, SignedId=#signed_id{}, Options}, _From, State
                    {path, string:to_lower(Queue)},
                    {body, erlazure_queue:get_request_body(set_queue_acl, SignedId)},
                    {parameters, [{comp, acl}]}],
-        RequestContext = new_req_context(?queue_service, State, Options),
+        ReqContext = new_req_context(?queue_service, State#state.account, State#state.param_specs, Options),
 
-        {?http_no_content, _Body} = execute_request(ServiceContext, RequestContext),
+        {?http_no_content, _Body} = execute_request(ServiceContext, ReqContext),
         {reply, {ok, created}, State};
 
 % Get queue acl
 handle_call({get_queue_acl, Queue, Options}, _From, State) ->
         ServiceContext = new_service_context(?queue_service, State),
-        RequestContext = new_req_context(?queue_service,
+        ReqContext = new_req_context(?queue_service,
                                                 State,
                                                 string:to_lower(Queue),
                                                 [{comp, acl}],
                                                 Options),
 
-        {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
+        {?http_ok, Body} = execute_request(ServiceContext, ReqContext),
         ParseResult = erlazure_queue:parse_queue_acl_response(Body),
         {reply, ParseResult, State};
 
