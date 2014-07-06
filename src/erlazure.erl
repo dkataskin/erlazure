@@ -331,105 +331,87 @@ handle_call({put_message, Queue, Message, Options}, _From, State) ->
 % Get messages from the queue
 handle_call({get_messages, Queue, Options}, _From, State) ->
         ServiceContext = new_service_context(?queue_service, State),
-        RequestContext = new_req_context(?queue_service,
-                                                State,
-                                                string:to_lower(Queue) ++ "/messages",
-                                                [],
-                                                Options),
+        ReqOptions = [{path, string:to_lower(Queue) ++ "/messages"},
+                      {params, Options}],
+        ReqContext = new_req_context(?queue_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
+        {?http_ok, Body} = execute_request(ServiceContext, ReqContext),
         {reply, erlazure_queue:parse_queue_messages_list(Body), State};
 
 % Peek messages from the queue
 handle_call({peek_messages, Queue, Options}, _From, State) ->
         ServiceContext = new_service_context(?queue_service, State),
-        RequestContext = new_req_context(?queue_service,
-                                                State,
-                                                string:to_lower(Queue) ++ "/messages",
-                                                [{peek_only, true}],
-                                                Options),
+        ReqOptions = [{path, string:to_lower(Queue) ++ "/messages"},
+                      {params, [{peek_only, true}] ++ Options}],
+        ReqContext = new_req_context(?queue_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
+        {?http_ok, Body} = execute_request(ServiceContext, ReqContext),
         {reply, erlazure_queue:parse_queue_messages_list(Body), State};
 
 % Delete message from the queue
 handle_call({delete_message, Queue, MessageId, PopReceipt, Options}, _From, State) ->
         ServiceContext = new_service_context(?queue_service, State),
-        RequestContext = new_req_context(?queue_service,
-                                                State,
-                                                delete,
-                                                string:to_lower(Queue) ++ "/messages/" ++ MessageId,
-                                                [{pop_receipt, PopReceipt}],
-                                                Options),
+        ReqOptions = [{method, delete},
+                      {path, lists:concat([string:to_lower(Queue), "/messages/", MessageId])},
+                      {params, [{pop_receipt, PopReceipt}] ++ Options}],
+        ReqContext = new_req_context(?queue_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_no_content, _Body} = execute_request(ServiceContext, RequestContext),
+        {?http_no_content, _Body} = execute_request(ServiceContext, ReqContext),
         {reply, {ok, deleted}, State};
 
 % Delete all messages from the queue
 handle_call({clear_messages, Queue, Options}, _From, State) ->
         ServiceContext = new_service_context(?queue_service, State),
-        RequestContext = new_req_context(?queue_service,
-                                                State,
-                                                delete,
-                                                string:to_lower(Queue) ++ "/messages",
-                                                [],
-                                                Options),
+        ReqOptions = [{method, delete},
+                      {path, string:to_lower(Queue) ++ "/messages"},
+                      {params, Options}],
+        ReqContext = new_req_context(?queue_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_no_content, _Body} = execute_request(ServiceContext, RequestContext),
+        {?http_no_content, _Body} = execute_request(ServiceContext, ReqContext),
         {reply, {ok, deleted}, State};
 
 % Update a message in the queue
 handle_call({update_message, Queue, UpdatedMessage=#queue_message{}, VisibilityTimeout, Options}, _From, State) ->
         ServiceContext = new_service_context(?queue_service, State),
+        Params = [{pop_receipt, UpdatedMessage#queue_message.pop_receipt},
+                  {message_visibility_timeout, integer_to_list(VisibilityTimeout)}],
+        ReqOptions = [{method, put},
+                      {path, lists:concat([string:to_lower(Queue), "/messages/", UpdatedMessage#queue_message.id])},
+                      {body, erlazure_queue:get_request_body(update_message, UpdatedMessage#queue_message.text)},
+                      {params, Params ++ Options}],
+        ReqContext = new_req_context(?queue_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        Parameters = [{pop_receipt, UpdatedMessage#queue_message.pop_receipt},
-                      {message_visibility_timeout, integer_to_list(VisibilityTimeout)}],
-
-        RequestContext = new_req_context(?queue_service,
-                                                State,
-                                                put,
-                                                string:to_lower(Queue) ++ "/messages/" ++ UpdatedMessage#queue_message.id,
-                                                erlazure_queue:get_request_body(update_message, UpdatedMessage#queue_message.text),
-                                                Parameters,
-                                                Options),
-
-        {?http_no_content, _Body} = execute_request(ServiceContext, RequestContext),
+        {?http_no_content, _Body} = execute_request(ServiceContext, ReqContext),
         {reply, {ok, updated}, State};
 
 % List containers
 handle_call({list_containers, Options}, _From, State) ->
         ServiceContext = new_service_context(?blob_service, State),
-        RequestContext = new_req_context(?blob_service,
-                                                State,
-                                                [{comp, list}],
-                                                Options),
+        ReqOptions = [{params, [{comp, list}] ++ Options}],
+        ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
+        {?http_ok, Body} = execute_request(ServiceContext, ReqContext),
         {ok, Containers} = erlazure_blob:parse_container_list(Body),
         {reply, Containers, State};
 
 % Create a container
 handle_call({create_container, Name, Options}, _From, State) ->
         ServiceContext = new_service_context(?blob_service, State),
-        RequestContext = new_req_context(?blob_service,
-                                                State,
-                                                put,
-                                                Name,
-                                                [{res_type, container}],
-                                                Options),
+        ReqOptions = [{method, put},
+                      {path, Name},
+                      {params, [{res_type, container}] ++ Options}],
+        ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_created, _Body} = execute_request(ServiceContext, RequestContext),
+        {?http_created, _Body} = execute_request(ServiceContext, ReqContext),
         {reply, {ok, created}, State};
 
 % Delete container
 handle_call({delete_container, Name, Options}, _From, State) ->
         ServiceContext = new_service_context(?blob_service, State),
-        RequestContext = new_req_context(?blob_service,
-                                                State,
-                                                delete,
-                                                Name,
-                                                [{res_type, container}],
-                                                Options),
+        ReqOptions = [{method, delete},
+                      {path, Name},
+                      {params, [{res_type, container}] ++ Options}],
+        RequestContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
         {?http_accepted, _Body} = execute_request(ServiceContext, RequestContext),
         {reply, {ok, deleted}, State};
@@ -437,136 +419,111 @@ handle_call({delete_container, Name, Options}, _From, State) ->
 % Lease a container
 handle_call({lease_container, Name, Mode, Options}, _From, State) ->
         ServiceContext = new_service_context(?blob_service, State),
-        Parameters = [{comp, lease},
-                      {res_type, container},
-                      {lease_action, Mode}],
+        Params = [{comp, lease},
+                  {res_type, container},
+                  {lease_action, Mode}],
+        ReqOptions = [{method, put},
+                      {path, Name},
+                      {params, Params ++ Options}],
+        ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        RequestContext = new_req_context(?blob_service,
-                                                State,
-                                                put,
-                                                Name,
-                                                Parameters,
-                                                Options),
-
-        {?http_accepted, _Body} = execute_request(ServiceContext, RequestContext),
+        {?http_accepted, _Body} = execute_request(ServiceContext, ReqContext),
         {reply, {ok, deleted}, State};
 
 % List blobs
 handle_call({list_blobs, Name, Options}, _From, State) ->
         ServiceContext = new_service_context(?blob_service, State),
-        Parameters = [{comp, list},
-                      {res_type, container}],
+        Params = [{comp, list},
+                  {res_type, container}],
+        ReqOptions = [{path, Name},
+                      {params, Params ++ Options}],
+        ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        RequestContext = new_req_context(?blob_service,
-                                                State,
-                                                Name,
-                                                Parameters,
-                                                Options),
-
-        {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
+        {?http_ok, Body} = execute_request(ServiceContext, ReqContext),
         {ok, Blobs} = erlazure_blob:parse_blob_list(Body),
         {reply, Blobs, State};
 
 % Put block blob
 handle_call({put_blob, Container, Name, Type = block_blob, Data, Options}, _From, State) ->
         ServiceContext = new_service_context(?blob_service, State),
-        RequestContextBase = new_req_context(?blob_service,
-                                                    State,
-                                                    put,
-                                                    Container ++ "/" ++ Name,
-                                                    Data,
-                                                    [{blob_type, Type}],
-                                                    Options),
+        ReqOptions = [{method, put},
+                      {path, lists:concat([Container, "/", Name])},
+                      {body, Data},
+                      {params, [{blob_type, Type}] ++ Options}],
+        ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
+        ReqContext1 = ReqContext#req_context{ content_type = "application/octet-stream" },
 
-        RequestContext = RequestContextBase#req_context{content_type = "application/octet-stream"},
-
-        {?http_created, _Body} = execute_request(ServiceContext, RequestContext),
+        {?http_created, _Body} = execute_request(ServiceContext, ReqContext1),
         {reply, {ok, created}, State};
 
 % Put page blob
 handle_call({put_blob, Container, Name, Type = page_blob, ContentLength, Options}, _From, State) ->
         ServiceContext = new_service_context(?blob_service, State),
+        Params = [{blob_type, Type},
+                  {blob_content_length, ContentLength}],
+        ReqOptions = [{method, put},
+                      {path, lists:concat([Container, "/", Name])},
+                      {params, Params ++ Options}],
+        ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        Parameters = [{blob_type, Type},
-                      {blob_content_length, ContentLength}],
-
-        RequestContext = new_req_context(?blob_service,
-                                                State,
-                                                put,
-                                                Container ++ "/" ++ Name,
-                                                Parameters,
-                                                Options),
-
-        {?http_created, _Body} = execute_request(ServiceContext, RequestContext),
+        {?http_created, _Body} = execute_request(ServiceContext, ReqContext),
         {reply, {ok, created}, State};
 
 % Get blob
 handle_call({get_blob, Container, Blob, Options}, _From, State) ->
         ServiceContext = new_service_context(?blob_service, State),
-        RequestContext = new_req_context(?blob_service,
-                                                State,
-                                                Container ++ "/" ++ Blob,
-                                                [],
-                                                Options),
+        ReqOptions = [{path, lists:concat([Container, "/", Blob])},
+                      {params, Options}],
+        ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
+        {?http_ok, Body} = execute_request(ServiceContext, ReqContext),
         {reply, {ok, Body}, State};
 
 % Snapshot blob
 handle_call({snapshot_blob, Container, Blob, Options}, _From, State) ->
         ServiceContext = new_service_context(?blob_service, State),
-        RequestContext = new_req_context(?blob_service,
-                                                State,
-                                                put,
-                                                Container ++ "/" ++ Blob,
-                                                [{comp, snapshot}],
-                                                Options),
+        ReqOptions = [{method, put},
+                      {path, lists:concat([Container, "/", Blob])},
+                      {params, [{comp, snapshot}] ++ Options}],
+        ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_created, _Body} = execute_request(ServiceContext, RequestContext),
+        {?http_created, _Body} = execute_request(ServiceContext, ReqContext),
         {reply, {ok, created}, State};
 
 % Copy blob
 handle_call({copy_blob, Container, Blob, Source, Options}, _From, State) ->
         ServiceContext = new_service_context(?blob_service, State),
-        RequestContext = new_req_context(?blob_service,
-                                                State,
-                                                put,
-                                                Container ++ "/" ++ Blob,
-                                                [{blob_copy_source, Source}],
-                                                Options),
+        ReqOptions = [{method, put},
+                      {path, lists:concat([Container, "/", Blob])},
+                      {params, [{blob_copy_source, Source}] ++ Options}],
+        ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_accepted, _Body} = execute_request(ServiceContext, RequestContext),
+        {?http_accepted, _Body} = execute_request(ServiceContext, ReqContext),
         {reply, {ok, created}, State};
 
 % Delete blob
 handle_call({delete_blob, Container, Blob, Options}, _From, State) ->
         ServiceContext = new_service_context(?blob_service, State),
-        RequestContext = new_req_context(?blob_service,
-                                                State,
-                                                delete,
-                                                Container ++ "/" ++ Blob,
-                                                [],
-                                                Options),
+        ReqOptions = [{method, delete},
+                      {path, lists:concat([Container, "/", Blob])},
+                      {params, Options}],
+        ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_accepted, _Body} = execute_request(ServiceContext, RequestContext),
+        {?http_accepted, _Body} = execute_request(ServiceContext, ReqContext),
         {reply, {ok, deleted}, State};
 
 % Put block
 handle_call({put_block, Container, Blob, BlockId, Content, Options}, _From, State) ->
         ServiceContext = new_service_context(?blob_service, State),
+        Params = [{comp, block},
+                  {blob_block_id, base64:encode_to_string(BlockId)}],
+        ReqOptions = [{method, put},
+                      {path, lists:concat([Container, "/", Blob])},
+                      {body, Content},
+                      {params, Params ++ Options}],
+        ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        Parameters = [{comp, block},
-                      {blob_block_id, base64:encode_to_string(BlockId)}],
-
-        RequestContext = new_req_context(?blob_service,
-                                                State,
-                                                put,
-                                                Container ++ "/" ++ Blob,
-                                                Content,
-                                                Parameters,
-                                                Options),
-
-        {?http_created, _Body} = execute_request(ServiceContext, RequestContext),
+        {?http_created, _Body} = execute_request(ServiceContext, ReqContext),
         {reply, {ok, created}, State};
 
 % Put block list
