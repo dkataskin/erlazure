@@ -70,12 +70,12 @@
 -export([acquire_blob_lease/4, acquire_blob_lease/5, acquire_blob_lease/6]).
 
 %% Table API
--export([get_tables/1, get_tables/2]).
+-export([list_tables/1, list_tables/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
--record(state, { account="", key="", options=[], param_specs =[] }).
+-record(state, { account = "", key = "", options = [], param_specs = [] }).
 
 %%====================================================================
 %% API
@@ -242,10 +242,10 @@ lease_container(Pid, Name, Mode, Options) when is_atom(Mode) ->
 %% Table
 %%====================================================================
 
-get_tables(Pid) ->
-        get_tables(Pid, []).
-get_tables(Pid, Options) ->
-        gen_server:call(Pid, {get_table_list, Options}).
+list_tables(Pid) ->
+        list_tables(Pid, []).
+list_tables(Pid, Options) ->
+        gen_server:call(Pid, {list_tables, Options}).
 
 %%====================================================================
 %% gen_server callbacks
@@ -567,14 +567,15 @@ handle_call({acquire_blob_lease, Container, Blob, ProposedId, Duration, Options}
         {reply, {ok, acquired}, State};
 
 % List tables
-handle_call({get_table_list, Options}, _From, State) ->
+handle_call({list_tables, Options}, _From, State) ->
         ServiceContext = new_service_context(?table_service, State),
         ReqOptions = [{path, "Tables"},
-                      {params, Options}],
+                      {params, Options},
+                      {headers, [{"Accept", "application/json"}]}],
         ReqContext = new_req_context(?table_service, State#state.account, State#state.param_specs, ReqOptions),
 
         {?http_created, Body} = execute_request(ServiceContext, ReqContext),
-        io:format("Tables:~n~p", [Body]),
+        io:format("Tables:~p~n", [Body]),
         {reply, {ok, acquired}, State}.
 
 handle_cast(_Msg, State) ->
@@ -611,10 +612,10 @@ execute_request(ServiceContext = #service_context{}, ReqContext = #req_context{}
                       (ReqContext#req_context.body =/= []) ->
                         ContentHeaders = [{"Content-Type", ReqContext#req_context.content_type},
                                           {"Content-Length", integer_to_list(ReqContext#req_context.content_length)}],
-                        lists:concat([Headers, ContentHeaders, ReqContext#req_context.headers]);
+                        lists:append([Headers, ContentHeaders, ReqContext#req_context.headers]);
 
                       true ->
-                        lists:concat([Headers, ReqContext#req_context.headers])
+                        lists:append([Headers, ReqContext#req_context.headers])
                    end,
 
         AuthHeader = {"Authorization", get_shared_key(ServiceContext#service_context.service,
@@ -653,7 +654,6 @@ get_signature_string(Service, HttpMethod, Headers, Account, Path, Parameters) ->
                     SigStr1 ++ canonicalize_headers(Headers);
                     true -> SigStr1
                   end,
-        io:format("sig str ~p~n", [SigStr2 ++ canonicalize_resource(Account, Path, Parameters)]),
         SigStr2 ++ canonicalize_resource(Account, Path, Parameters).
 
 get_headers_string(Service, Headers) ->
