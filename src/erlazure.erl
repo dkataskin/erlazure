@@ -594,21 +594,23 @@ code_change(_OldVer, State, _Extra) ->
 %%--------------------------------------------------------------------
 
 -spec execute_request(service_context(), req_context()) -> {non_neg_integer(), binary()}.
-execute_request(ServiceContext = #service_context{}, RequestContext = #req_context{}) ->
+execute_request(ServiceContext = #service_context{}, ReqContext = #req_context{}) ->
         Headers =  [{"x-ms-date", httpd_util:rfc1123_date()},
                     {"x-ms-version", ServiceContext#service_context.api_version},
-                    {"Content-Type", RequestContext#req_context.content_type},
-                    {"Content-Length", integer_to_list(RequestContext#req_context.content_length)},
+                    %{"Content-Type", ReqContext#req_context.content_type},
+                    %{"Content-Length", integer_to_list(ReqContext#req_context.content_length)},
                     {"Host", get_host(ServiceContext#service_context.service,
                                       ServiceContext#service_context.account)}]
-                    ++ RequestContext#req_context.headers,
+                    ++ ReqContext#req_context.headers,
+
+        if (ReqContext#req_context.method )
 
         AuthHeader = {"Authorization", get_shared_key(ServiceContext#service_context.service,
                                                       ServiceContext#service_context.account,
                                                       ServiceContext#service_context.key,
-                                                      RequestContext#req_context.method,
-                                                      RequestContext#req_context.path,
-                                                      RequestContext#req_context.parameters,
+                                                      ReqContext#req_context.method,
+                                                      ReqContext#req_context.path,
+                                                      ReqContext#req_context.parameters,
                                                       Headers)},
 
         %% Fiddler
@@ -635,20 +637,20 @@ get_signature_string(Service, HttpMethod, Headers, Account, Path, Parameters) ->
         SigStr1 = erlazure_http:verb_to_str(HttpMethod) ++ "\n" ++
                   get_headers_string(Service, Headers),
 
-        SigStr2 = if (Service =:= ?queue_service) orelse
-                   (Service =:= ?blob_service) ->
-                      SigStr1 ++ canonicalize_headers(Headers);
-                      true -> SigStr1
-                end,
+        SigStr2 = if (Service =:= ?queue_service) orelse (Service =:= ?blob_service) ->
+                    SigStr1 ++ canonicalize_headers(Headers);
+                    true -> SigStr1
+                  end,
+        io:format("sig str ~p~n", [SigStr2 ++ canonicalize_resource(Account, Path, Parameters)]),
         SigStr2 ++ canonicalize_resource(Account, Path, Parameters).
 
 get_headers_string(Service, Headers) ->
         FoldFun = fun(HeaderName, Acc) ->
-          case lists:keyfind(HeaderName, 1, Headers) of
-            {HeaderName, Value} -> Acc ++ Value ++ "\n";
-            false -> Acc ++ "\n"
-          end
-        end,
+                    case lists:keyfind(HeaderName, 1, Headers) of
+                      {HeaderName, Value} -> lists:concat([Acc, Value, "\n"]);
+                      false -> lists:concat([Acc, "\n"])
+                    end
+                  end,
         lists:foldl(FoldFun, "", get_header_names(Service)).
 
 -spec sign_string(base64:ascii_string(), string()) -> binary().
@@ -656,23 +658,23 @@ sign_string(Key, StringToSign) ->
         crypto:hmac(sha256, base64:decode(Key), StringToSign).
 
 build_uri_base(Service, Account) ->
-        "https://" ++ get_host(Service, Account) ++ "/".
+        lists:concat(["https://", get_host(Service, Account), "/"]).
 
 get_host(Service, Account) ->
-        Account ++ "." ++ erlang:atom_to_list(Service) ++ ".core.windows.net".
+        lists:concat([Account, ".", erlang:atom_to_list(Service), ".core.windows.net"]).
 
 -spec canonicalize_headers([string()]) -> string().
 canonicalize_headers(Headers) ->
-        MS_Header_Names = [HeaderName || {HeaderName, _} <- Headers, string:str(HeaderName, "x-ms-") =:= 1],
-        Sorted_MS_Header_Names = lists:sort(MS_Header_Names),
+        MSHeaderNames = [HeaderName || {HeaderName, _} <- Headers, string:str(HeaderName, "x-ms-") =:= 1],
+        SortedHeaderNames = lists:sort(MSHeaderNames),
         FoldFun = fun(HeaderName, Acc) ->
-          {_, Value} = lists:keyfind(HeaderName, 1, Headers),
-          Acc ++ HeaderName ++ ":" ++ Value ++ "\n"
-        end,
-        lists:foldl(FoldFun, "", Sorted_MS_Header_Names).
+                    {_, Value} = lists:keyfind(HeaderName, 1, Headers),
+                    lists:concat([Acc, HeaderName, ":", Value, "\n"])
+                  end,
+        lists:foldl(FoldFun, "", SortedHeaderNames).
 
 canonicalize_resource(Account, Path, []) ->
-        "/" ++ Account ++ "/" ++ Path;
+        lists:concat(["/", Account, "/", Path]);
 
 canonicalize_resource(Account, Path, Parameters) ->
         SortFun = fun({ParamNameA, ParamValA}, {ParamNameB, ParamValB}) ->

@@ -35,10 +35,12 @@
 -define(blob_service, blob).
 -define(table_service, table).
 -define(queue_service, queue).
+-define(file_service, file).
 
 -define(queue_service_ver, "2014-02-14").
--define(blob_service_ver, "2012-02-12").
+-define(blob_service_ver, "2014-02-14").
 -define(table_service_ver, "2014-02-14").
+-define(file_service_ver, "2014-02-14").
 
 %% Request common parameters
 -define(req_param_prefix, prefix).
@@ -56,14 +58,14 @@
 
 -ifdef(TEST).
 -define(account_name, "strg1").
--define(account_key, "52l7Z+HPjdMrDliXEm5fnfPO5UVhQsVrEnrPHS+WuZKo13eZr52Iu3Z0qL5HkqcbIIP2kax6Rw7MvSUpUmtdIA==").
+-define(account_key, "").
 -endif.
 
 %% Types
 -type xmlElement() :: #xmlElement{}.
 -export_type([xmlElement/0]).
 
--type method() :: get | post | delete | head.
+-type method() :: get | put | post | delete | head.
 -export_type([method/0]).
 
 -type azure_service() :: ?queue_service | ?blob_service | ?table_service.
@@ -125,109 +127,109 @@
 -type request_header() :: {string(), string()}.
 -export_type([request_param/0, request_param_type/0, request_header/0]).
 
--record(service_context, {service=undefined :: undefined | azure_service(),
-                          api_version="" :: string(),
-                          account="" :: string(),
-                          key="" :: string()}).
+-record(service_context, { service = undefined :: undefined | azure_service(),
+                           api_version = "" :: string(),
+                           account = "" :: string(),
+                           key = "" :: string() }).
 -type service_context() :: #service_context{}.
 -export_type([service_context/0]).
 
--record(req_context, {method = get :: method(),
-                      address="" :: string(),
-                      path = "" :: string(),
-                      parameters = [] :: list(request_param()),
-                      content_type = "application/xml" :: string(),
-                      content_length = 0 :: non_neg_integer(),
-                      body = "" :: string(),
-                      headers = [] :: list(request_header())}).
+-record(req_context, { method = get :: method(),
+                       address = "" :: string(),
+                       path = "" :: string(),
+                       parameters = [] :: list(request_param()),
+                       content_type = "application/xml" :: string(),
+                       content_length = 0 :: non_neg_integer(),
+                       body = "" :: string() | binary(),
+                       headers = [] :: list(request_header()) }).
 -type req_context() :: #req_context{}.
 -export_type([req_context/0]).
 
--record(param_spec, {id=undefined :: atom(),
-                     type=undefined :: undefined | request_param_type(),
-                     name="" :: string(),
-                     parse_fun = fun(Value) ->
-                                   lists:flatten(io_lib:format("~p", [Value]))
-                                 end :: fun((any()) -> string())}).
+-record(param_spec, { id = undefined :: atom(),
+                      type = undefined :: undefined | request_param_type(),
+                      name = "" :: string(),
+                      parse_fun = fun(Value) ->
+                                    lists:flatten(io_lib:format("~p", [Value]))
+                                  end :: fun((any()) -> string())}).
 -type param_spec() :: #param_spec{}.
 -export_type([param_spec/0]).
 
--record(property_spec, {name=undefined :: atom(),
-                        key=undefined :: atom(),
-                        parse_fun = fun(Elem=#xmlElement{}) ->
+-record(property_spec, { name = undefined :: atom(),
+                         key = undefined :: atom(),
+                         parse_fun = fun(Elem=#xmlElement{}) ->
                                       erlazure_xml:parse_str(Elem)
-                                    end :: fun((xmlElement()) -> string() | integer() | atom())}).
+                                     end :: fun((xmlElement()) -> string() | integer() | atom())}).
 -type property_spec() :: #property_spec{}.
 -export_type([property_spec/0]).
 
 %% @todo Improve specs.
--record(enum_parser_spec, {rootKey=undefined :: atom(),
-                           elementKey=undefined :: atom(),
-                           elementParser :: any(),
-                           customParsers=[] :: [any()]}).
+-record(enum_parser_spec, { rootKey = undefined :: atom(),
+                            elementKey = undefined :: atom(),
+                            elementParser :: any(),
+                            customParsers = [] :: [any()] }).
 -type enum_parser_spec() :: #enum_parser_spec{}.
 -export_type([enum_parser_spec/0]).
 
 % Queue
--record(queue, {name="" :: string(),
-                url="" :: string(),
-                metadata=[] :: metadata()}).
+-record(queue, { name = "" :: string(),
+                 url = "" :: string(),
+                 metadata = [] :: metadata() }).
 -type queue() :: #queue{}.
 -export_type([queue/0]).
 
--record(access_policy, {start="" :: string(),
-                        expiry="" :: string(),
-                        permission="" :: string()}).
+-record(access_policy, { start = "" :: string(),
+                         expiry = "" :: string(),
+                         permission = "" :: string() }).
 -type access_policy() :: #access_policy{}.
 -export_type([access_policy/0]).
 
--record(signed_id, {id="" :: string(),
-                    access_policy=#access_policy{} :: access_policy()}).
+-record(signed_id, { id = "" :: string(),
+                     access_policy = #access_policy{} :: access_policy() }).
 -type signed_id() :: #signed_id{}.
 -export_type([signed_id/0]).
 
--record(queue_message, {id="" :: string(),
-                        insertion_time="" :: string(),
-                        exp_time="" :: string(),
-                        pop_receipt="" :: string(),
-                        next_visible="" :: string(),
-                        dequeue_count=0 :: non_neg_integer(),
-                        text="" :: string()}).
+-record(queue_message, { id = "" :: string(),
+                         insertion_time = "" :: string(),
+                         exp_time = "" :: string(),
+                         pop_receipt = "" :: string(),
+                         next_visible = "" :: string(),
+                         dequeue_count = 0 :: non_neg_integer(),
+                         text = "" :: string()}).
 -type queue_message() :: #queue_message{}.
 -export_type([queue_message/0]).
 
 % Blob
--record(blob_container, {name="" :: string(),
-                         url="" :: string(),
-                         properties=[] :: proplists:proplist(),
-                         metadata=[] :: metadata()}).
+-record(blob_container, { name = "" :: string(),
+                          url = "" :: string(),
+                          properties = [] :: proplists:proplist(),
+                          metadata = [] :: metadata()}).
 -type blob_container() :: #blob_container{}.
 -export_type([blob_container/0]).
 
--record(blob_lease, {id="" :: string(),
-                     status=undefined :: undefined | lease_status(),
-                     state=undefined :: undefined | lease_state(),
-                     duration=undefined :: undefined | lease_duration()}).
+-record(blob_lease, { id = "" :: string(),
+                      status = undefined :: undefined | lease_status(),
+                      state = undefined :: undefined | lease_state(),
+                      duration = undefined :: undefined | lease_duration() }).
 -type blob_lease() :: #blob_lease{}.
 -export_type([blob_lease/0]).
 
--record(blob_copy_state, {id="",
-                          status=undefined,
-                          source="",
-                          progress="",
-                          completion_time="",
-                          status_description=""}).
+-record(blob_copy_state, { id = "" :: string(),
+                           status = undefined,
+                           source = "" :: string(),
+                           progress = "" :: string(),
+                           completion_time = "" :: string(),
+                           status_description = "" :: string() }).
 
--record(cloud_blob, {name="" :: string(),
-                     snapshot="" :: string(),
-                     url="" :: string(),
-                     properties=[] :: proplists:proplist(),
-                     metadata=[] :: metadata()}).
+-record(cloud_blob, { name = "" :: string(),
+                      snapshot = "" :: string(),
+                      url = "" :: string(),
+                      properties = [] :: proplists:proplist(),
+                      metadata = [] :: metadata() }).
 -type cloud_blob() :: #cloud_blob{}.
 -export_type([cloud_blob/0]).
 
--record(blob_block, {id="" :: string(),
-                     type=undefined :: undefined | blob_block_type(),
-                     size=0 :: non_neg_integer()}).
+-record(blob_block, { id = "" :: string(),
+                      type = undefined :: undefined | blob_block_type(),
+                      size = 0 :: non_neg_integer() }).
 -type blob_block() :: #blob_block{}.
 -export_type([blob_block/0]).
