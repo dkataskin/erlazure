@@ -595,15 +595,27 @@ code_change(_OldVer, State, _Extra) ->
 
 -spec execute_request(service_context(), req_context()) -> {non_neg_integer(), binary()}.
 execute_request(ServiceContext = #service_context{}, ReqContext = #req_context{}) ->
-        Headers =  [{"x-ms-date", httpd_util:rfc1123_date()},
-                    {"x-ms-version", ServiceContext#service_context.api_version},
-                    %{"Content-Type", ReqContext#req_context.content_type},
-                    %{"Content-Length", integer_to_list(ReqContext#req_context.content_length)},
-                    {"Host", get_host(ServiceContext#service_context.service,
-                                      ServiceContext#service_context.account)}]
-                    ++ ReqContext#req_context.headers,
+        DateHeader = if (ServiceContext#service_context.service =:= ?table_service) ->
+                          {"Date", httpd_util:rfc1123_date()};
+                        true ->
+                          {"x-ms-date", httpd_util:rfc1123_date()}
+                     end,
 
-        if (ReqContext#req_context.method )
+        Headers =  [DateHeader,
+                    {"x-ms-version", ServiceContext#service_context.api_version},
+                    {"Host", get_host(ServiceContext#service_context.service,
+                                      ServiceContext#service_context.account)}],
+
+        Headers1 = if (ReqContext#req_context.method =:= put orelse
+                       ReqContext#req_context.method =:= post) andalso
+                      (ReqContext#req_context.body =/= []) ->
+                        ContentHeaders = [{"Content-Type", ReqContext#req_context.content_type},
+                                          {"Content-Length", integer_to_list(ReqContext#req_context.content_length)}],
+                        lists:concat([Headers, ContentHeaders, ReqContext#req_context.headers]);
+
+                      true ->
+                        lists:concat([Headers, ReqContext#req_context.headers])
+                   end,
 
         AuthHeader = {"Authorization", get_shared_key(ServiceContext#service_context.service,
                                                       ServiceContext#service_context.account,
@@ -611,13 +623,13 @@ execute_request(ServiceContext = #service_context{}, ReqContext = #req_context{}
                                                       ReqContext#req_context.method,
                                                       ReqContext#req_context.path,
                                                       ReqContext#req_context.parameters,
-                                                      Headers)},
+                                                      Headers1)},
 
         %% Fiddler
         %% httpc:set_options([{ proxy, {{"localhost", 9999}, []}}]),
 
-        Response = httpc:request(RequestContext#req_context.method,
-                                 erlazure_http:create_request(RequestContext, [AuthHeader | Headers]),
+        Response = httpc:request(ReqContext#req_context.method,
+                                 erlazure_http:create_request(ReqContext, [AuthHeader | Headers1]),
                                  [{version, "HTTP/1.1"}],
                                  [{sync, true}, {body_format, binary}, {headers_as_is, true}]),
         case Response of
