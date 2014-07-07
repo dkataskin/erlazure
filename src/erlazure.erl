@@ -529,27 +529,23 @@ handle_call({put_block, Container, Blob, BlockId, Content, Options}, _From, Stat
 % Put block list
 handle_call({put_block_list, Container, Blob, BlockRefs, Options}, _From, State) ->
         ServiceContext = new_service_context(?blob_service, State),
-        RequestContext = new_req_context(?blob_service,
-                                                State,
-                                                put,
-                                                Container ++ "/" ++ Blob,
-                                                erlazure_blob:get_request_body(BlockRefs),
-                                                [{comp, "blocklist"}],
-                                                Options),
+        ReqOptions = [{method, put},
+                      {path, lists:concat([Container, "/", Blob])},
+                      {body, erlazure_blob:get_request_body(BlockRefs)},
+                      {params, [{comp, "blocklist"}] ++ Options}],
+        ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_created, _Body} = execute_request(ServiceContext, RequestContext),
+        {?http_created, _Body} = execute_request(ServiceContext, ReqContext),
         {reply, {ok, created}, State};
 
 % Get block list
 handle_call({get_block_list, Container, Blob, Options}, _From, State) ->
         ServiceContext = new_service_context(?blob_service, State),
-        RequestContext = new_req_context(?blob_service,
-                                                State,
-                                                Container ++ "/" ++ Blob,
-                                                [{comp, "blocklist"}],
-                                                Options),
+        ReqOptions = [{path, lists:concat([Container, "/", Blob])},
+                      {params, [{comp, "blocklist"}] ++ Options}],
+        ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_ok, Body} = execute_request(ServiceContext, RequestContext),
+        {?http_ok, Body} = execute_request(ServiceContext, ReqContext),
         {ok, BlockList} = erlazure_blob:parse_block_list(Body),
         {reply, BlockList, State};
 
@@ -557,33 +553,27 @@ handle_call({get_block_list, Container, Blob, Options}, _From, State) ->
 handle_call({acquire_blob_lease, Container, Blob, ProposedId, Duration, Options}, _From, State) ->
         ServiceContext = new_service_context(?blob_service, State),
 
-        Parameters = [{lease_action, acquire},
-                      {proposed_lease_id, ProposedId},
-                      {lease_duration, Duration},
-                      {comp, lease}],
+        Params = [{lease_action, acquire},
+                  {proposed_lease_id, ProposedId},
+                  {lease_duration, Duration},
+                  {comp, lease}],
 
-        RequestContext = new_req_context(?blob_service,
-                                                State,
-                                                put,
-                                                Container ++ "/" ++ Blob,
-                                                Parameters,
-                                                Options),
+        ReqOptions = [{method, put},
+                      {path, lists:concat([Container, "/", Blob])},
+                      {params, Params ++ Options}],
+        ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_created, _Body} = execute_request(ServiceContext, RequestContext),
+        {?http_created, _Body} = execute_request(ServiceContext, ReqContext),
         {reply, {ok, acquired}, State};
 
 % List tables
 handle_call({get_table_list, Options}, _From, State) ->
         ServiceContext = new_service_context(?table_service, State),
-        Parameters = [],
-        RequestContext = new_req_context(?table_service,
-                                                State,
-                                                get,
-                                                "Tables",
-                                                Parameters,
-                                                Options),
+        ReqOptions = [{path, "Tables"},
+                      {params, Options}],
+        ReqContext = new_req_context(?table_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_created, Body} = execute_request(ServiceContext, RequestContext),
+        {?http_created, Body} = execute_request(ServiceContext, ReqContext),
         io:format("Tables:~n~p", [Body]),
         {reply, {ok, acquired}, State}.
 
