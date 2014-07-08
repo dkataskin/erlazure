@@ -570,13 +570,11 @@ handle_call({acquire_blob_lease, Container, Blob, ProposedId, Duration, Options}
 handle_call({list_tables, Options}, _From, State) ->
         ServiceContext = new_service_context(?table_service, State),
         ReqOptions = [{path, "Tables"},
-                      {params, Options},
-                      {headers, [{"Accept", "application/json;odata=fullmetadata"}]}],
+                      {params, Options}],
         ReqContext = new_req_context(?table_service, State#state.account, State#state.param_specs, ReqOptions),
 
         {?http_ok, Body} = execute_request(ServiceContext, ReqContext),
-        io:format("Tables:~p~n", [Body]),
-        {reply, {ok, acquired}, State}.
+        {reply, {ok, Body}, State}.
 
 handle_cast(_Msg, State) ->
         {noreply, State}.
@@ -762,9 +760,9 @@ new_req_context(Service, Account, ParamSpecs, Options) ->
         Headers = proplists:get_value(headers, Options, []),
         Params = proplists:get_value(params, Options, []),
         AddHeaders = if (Service =:= ?table_service) ->
-                        if (lists:keyfind("Accept", 1, Headers) =:= false) ->
-                          [{"Accept", "application/json;odata=fullmetadata"}];
-                          true -> []
+                        case lists:keyfind("Accept", 1, Headers) of
+                          false -> [{"Accept", "application/json;odata=fullmetadata"}];
+                          _ -> []
                         end;
                         true -> []
                      end,

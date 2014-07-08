@@ -32,5 +32,12 @@
 -module(erlazure_table).
 -author("Dmitry Kataskin").
 
+-include("erlazure.hrl").
+
 %% API
--export([]).
+-export([parse_table_list/1]).
+
+parse_table_list(TableListResponse) when is_binary(TableListResponse) ->
+        parse_table_list(jsx:decode(TableListResponse), []).
+
+parse_table_list(TableListJson, TableList) -> ok.

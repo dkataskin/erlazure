@@ -233,3 +233,11 @@
                       size = 0 :: non_neg_integer() }).
 -type blob_block() :: #blob_block{}.
 -export_type([blob_block/0]).
+
+%
+% Table service types
+%
+-record(cloud_table, { name = <<>> :: binary(),
+                       metadata = [] :: metadata() }).
+-type cloud_table() :: #cloud_table{}.
+-export_type([cloud_table/0]).
