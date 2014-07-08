@@ -571,10 +571,10 @@ handle_call({list_tables, Options}, _From, State) ->
         ServiceContext = new_service_context(?table_service, State),
         ReqOptions = [{path, "Tables"},
                       {params, Options},
-                      {headers, [{"Accept", "application/json"}]}],
+                      {headers, [{"Accept", "application/json;odata=fullmetadata"}]}],
         ReqContext = new_req_context(?table_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_created, Body} = execute_request(ServiceContext, ReqContext),
+        {?http_ok, Body} = execute_request(ServiceContext, ReqContext),
         io:format("Tables:~p~n", [Body]),
         {reply, {ok, acquired}, State}.
 
@@ -760,18 +760,25 @@ new_req_context(Service, Account, ParamSpecs, Options) ->
         Path = proplists:get_value(path, Options, ""),
         Body = proplists:get_value(body, Options, ""),
         Headers = proplists:get_value(headers, Options, []),
-        Parameters = proplists:get_value(params, Options, []),
+        Params = proplists:get_value(params, Options, []),
+        AddHeaders = if (Service =:= ?table_service) ->
+                        if (lists:keyfind("Accept", 1, Headers) =:= false) ->
+                          [{"Accept", "application/json;odata=fullmetadata"}];
+                          true -> []
+                        end;
+                        true -> []
+                     end,
 
-        RequestParameters = get_req_uri_params(Parameters, ParamSpecs),
-        RequestHeaders = Headers ++ get_req_headers(Parameters, ParamSpecs),
+        ReqParams = get_req_uri_params(Params, ParamSpecs),
+        ReqHeaders = lists:append([Headers, AddHeaders, get_req_headers(Params, ParamSpecs)]),
 
         #req_context{ address = build_uri_base(Service, Account),
                       path = Path,
                       method = Method,
                       body = Body,
                       content_length = erlazure_http:get_content_length(Body),
-                      parameters = RequestParameters,
-                      headers = RequestHeaders }.
+                      parameters = ReqParams,
+                      headers = ReqHeaders }.
 
 get_req_headers(Params, ParamSpecs) ->
         get_req_params(Params, ParamSpecs, header).
