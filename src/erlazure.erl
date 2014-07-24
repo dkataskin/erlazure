@@ -574,7 +574,7 @@ handle_call({list_tables, Options}, _From, State) ->
         ReqContext = new_req_context(?table_service, State#state.account, State#state.param_specs, ReqOptions),
 
         {?http_ok, Body} = execute_request(ServiceContext, ReqContext),
-        {reply, {ok, Body}, State}.
+        {reply, {ok, erlazure_table:parse_table_list(Body)}, State}.
 
 handle_cast(_Msg, State) ->
         {noreply, State}.
