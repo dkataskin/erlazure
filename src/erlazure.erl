@@ -249,7 +249,10 @@ list_tables(Pid) ->
 list_tables(Pid, Options) ->
         gen_server:call(Pid, {list_tables, Options}).
 
-new_table(Pid, TableName) ->
+new_table(Pid, TableName) when is_list(TableName) ->
+        new_table(Pid, list_to_binary(TableName));
+
+new_table(Pid, TableName) when is_binary(TableName) ->
         gen_server:call(Pid, {new_table, TableName}).
 
 %%====================================================================
@@ -589,8 +592,8 @@ handle_call({new_table, TableName}, _From, State) ->
                       {body, jsx:encode([{<<"TableName">>, TableName}])}],
         ReqContext = new_req_context(?table_service, State#state.account, State#state.param_specs, ReqOptions),
         ReqContext1 = ReqContext#req_context{ content_type = ?json_content_type },
-        {?http_ok, Body} = execute_request(ServiceContext, ReqContext1),
-        {reply, {ok, Body}, State}.
+        {?http_created, _} = execute_request(ServiceContext, ReqContext1),
+        {reply, {ok, created}, State}.
 
 handle_cast(_Msg, State) ->
         {noreply, State}.
