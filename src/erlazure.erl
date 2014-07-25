@@ -34,6 +34,8 @@
 
 -include("erlazure.hrl").
 
+-define(json_content_type, "application/json").
+
 -behaviour(gen_server).
 
 %% API
@@ -70,7 +72,7 @@
 -export([acquire_blob_lease/4, acquire_blob_lease/5, acquire_blob_lease/6]).
 
 %% Table API
--export([list_tables/1, list_tables/2]).
+-export([list_tables/1, list_tables/2, new_table/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -246,6 +248,9 @@ list_tables(Pid) ->
         list_tables(Pid, []).
 list_tables(Pid, Options) ->
         gen_server:call(Pid, {list_tables, Options}).
+
+new_table(Pid, TableName) ->
+        gen_server:call(Pid, {new_table, TableName}).
 
 %%====================================================================
 %% gen_server callbacks
@@ -574,7 +579,18 @@ handle_call({list_tables, Options}, _From, State) ->
         ReqContext = new_req_context(?table_service, State#state.account, State#state.param_specs, ReqOptions),
 
         {?http_ok, Body} = execute_request(ServiceContext, ReqContext),
-        {reply, {ok, erlazure_table:parse_table_list(Body)}, State}.
+        {reply, {ok, erlazure_table:parse_table_list(Body)}, State};
+
+% New tables
+handle_call({new_table, TableName}, _From, State) ->
+        ServiceContext = new_service_context(?table_service, State),
+        ReqOptions = [{path, "Tables"},
+                      {method, post},
+                      {body, jsx:encode([{<<"TableName">>, TableName}])}],
+        ReqContext = new_req_context(?table_service, State#state.account, State#state.param_specs, ReqOptions),
+        ReqContext1 = ReqContext#req_context{ content_type = ?json_content_type },
+        {?http_ok, Body} = execute_request(ServiceContext, ReqContext1),
+        {reply, {ok, Body}, State}.
 
 handle_cast(_Msg, State) ->
         {noreply, State}.
