@@ -72,7 +72,7 @@
 -export([acquire_blob_lease/4, acquire_blob_lease/5, acquire_blob_lease/6]).
 
 %% Table API
--export([list_tables/1, list_tables/2, new_table/2]).
+-export([list_tables/1, list_tables/2, new_table/2, delete_table/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -254,6 +254,12 @@ new_table(Pid, TableName) when is_list(TableName) ->
 
 new_table(Pid, TableName) when is_binary(TableName) ->
         gen_server:call(Pid, {new_table, TableName}).
+
+delete_table(Pid, TableName) when is_binary(TableName) ->
+        delete_table(Pid, binary_to_list(TableName));
+
+delete_table(Pid, TableName) when is_list(TableName) ->
+        gen_server:call(Pid, {delete_table, TableName}).
 
 %%====================================================================
 %% gen_server callbacks
@@ -593,7 +599,16 @@ handle_call({new_table, TableName}, _From, State) ->
         ReqContext = new_req_context(?table_service, State#state.account, State#state.param_specs, ReqOptions),
         ReqContext1 = ReqContext#req_context{ content_type = ?json_content_type },
         {?http_created, _} = execute_request(ServiceContext, ReqContext1),
-        {reply, {ok, created}, State}.
+        {reply, {ok, created}, State};
+
+% Delete table
+handle_call({delete_table, TableName}, _From, State) ->
+        ServiceContext = new_service_context(?table_service, State),
+        ReqOptions = [{path, io:format("Tables('~s')", [TableName])},
+                      {method, delete}],
+        ReqContext = new_req_context(?table_service, State#state.account, State#state.param_specs, ReqOptions),
+        {?http_no_content, _} = execute_request(ServiceContext, ReqContext),
+        {reply, {ok, deleted}, State}.
 
 handle_cast(_Msg, State) ->
         {noreply, State}.
