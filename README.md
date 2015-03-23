@@ -45,3 +45,9 @@ Start an instance of erlazure by calling erlazure:start/2 where **Account** is S
 ```erlang
 erlazure:start(Account, Key)
 ```
+
+## License
+
+Copyright © 2013–2014 Dmitriy Kataskin
+
+Licensed under BSD License (see LICENSE).
