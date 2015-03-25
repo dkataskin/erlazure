@@ -50,4 +50,4 @@ erlazure:start(Account, Key)
 
 Copyright © 2013–2014 Dmitriy Kataskin
 
-Licensed under BSD License (see LICENSE).
+Licensed under BSD License (see [LICENSE](license.txt)).
