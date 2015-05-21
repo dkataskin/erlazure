@@ -28,7 +28,7 @@
 -module(erlazure_http).
 -author("Dmitry Kataskin").
 
--include("erlazure.hrl").
+-include("../include/erlazure.hrl").
 
 %% API
 -export([verb_to_str/1, get_content_length/1, create_request/2]).

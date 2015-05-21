@@ -32,7 +32,7 @@
 -module(erlazure).
 -author("Dmitry Kataskin").
 
--include("erlazure.hrl").
+-include("../include/erlazure.hrl").
 
 -define(json_content_type, "application/json").
 

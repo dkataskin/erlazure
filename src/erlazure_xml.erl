@@ -28,7 +28,7 @@
 -module(erlazure_xml).
 -author("Dmitry Kataskin").
 
--include("erlazure.hrl").
+-include("../include/erlazure.hrl").
 
 -record(parse_enum_acc, { items=[], misc=[], custom=[], spec = #enum_parser_spec{} }).
 

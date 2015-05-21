@@ -32,7 +32,7 @@
 -module(erlazure_blob).
 -author("Dmitry Kataskin").
 
--include("erlazure.hrl").
+-include("../include/erlazure.hrl").
 
 %% API
 -export([parse_container_list/1, parse_blob_list/1, get_request_body/1, parse_block_list/1,
@@ -168,6 +168,9 @@ parse_block(#xmlElement{ content = Content }, Type) ->
 str_to_blob_type("BlockBlob") -> block_blob;
 str_to_blob_type("PageBlob") -> page_blob.
 
+blob_type_to_str(block_blob) -> "BlockBlob";
+blob_type_to_str(page_blob) -> "PageBlob".
+
 block_type_to_node(uncommitted) -> 'Uncommitted';
 block_type_to_node(committed) -> 'Committed';
 block_type_to_node(latest) -> 'Latest'.
@@ -193,7 +196,7 @@ get_request_param_specs() ->
          #param_spec{ id = blob_block_id, type = uri, name = "blockid" },
          #param_spec{ id = res_type, type = uri, name = "restype" },
          #param_spec{ id = blob_copy_source, type = header, name = "x-ms-copy-source" },
-         #param_spec{ id = blob_type, type = header, name = "x-ms-blob-type", parse_fun = fun erlang:atom_to_list/1 },
+         #param_spec{ id = blob_type, type = header, name = "x-ms-blob-type", parse_fun = fun blob_type_to_str/1 },
          #param_spec{ id = blob_content_length, type = header, name = "x-ms-blob-content-length" },
          #param_spec{ id = proposed_lease_id, type = header, name = "x-ms-proposed-lease-id" },
          #param_spec{ id = lease_id, type = header, name = "x-ms-lease-id" },

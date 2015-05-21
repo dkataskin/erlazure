@@ -32,7 +32,7 @@
 -module(erlazure_table).
 -author("Dmitry Kataskin").
 
--include("erlazure.hrl").
+-include("../include/erlazure.hrl").
 
 %% API
 -export([parse_table_list/1]).
