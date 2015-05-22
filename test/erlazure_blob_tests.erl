@@ -30,7 +30,7 @@
 
 -compile(export_all).
 
--include("erlazure.hrl").
+-include("../include/erlazure.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 parse_container_list_test() ->
