@@ -490,8 +490,13 @@ handle_call({get_blob, Container, Blob, Options}, _From, State) ->
                       {params, Options}],
         ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_ok, Body} = execute_request(ServiceContext, ReqContext),
-        {reply, {ok, Body}, State};
+        {Code, Body} = execute_request(ServiceContext, ReqContext),
+        case Code of
+          ?http_ok ->
+            {reply, {ok, Body}, State};
+          ?http_partial_content->
+            {reply, {ok, Body}, State}
+        end;
 
 % Snapshot blob
 handle_call({snapshot_blob, Container, Blob, Options}, _From, State) ->
@@ -667,7 +672,7 @@ execute_request(ServiceContext = #service_context{}, ReqContext = #req_context{}
                                  [{sync, true}, {body_format, binary}, {headers_as_is, true}]),
         case Response of
           {ok, {{_, Code, _}, _, Body}}
-          when Code >= 200, Code =< 204 ->
+          when Code >= 200, Code =< 206 ->
                {Code, Body};
 
           {ok, {{_, _, _}, _, Body}} ->
