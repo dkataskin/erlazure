@@ -31,6 +31,7 @@
 -define(http_created, 201).
 -define(http_accepted, 202).
 -define(http_no_content, 204).
+-define(http_partial_content, 206). 
 
 -define(blob_service, blob).
 -define(table_service, table).
@@ -149,7 +150,7 @@
                       type = undefined :: undefined | request_param_type(),
                       name = "" :: string(),
                       parse_fun = fun(Value) ->
-                                    lists:flatten(io_lib:format("~p", [Value]))
+                                    lists:flatten(io_lib:format("~s", [Value]))
                                   end :: fun((any()) -> string())}).
 -type param_spec() :: #param_spec{}.
 -export_type([param_spec/0]).
