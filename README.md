@@ -59,13 +59,13 @@ For a list of supported options for each azure service request please consult ms
 
 ##Examples
 
-#Upload block blob
+###Upload block blob
 ```
 {ok, Pid} = erlazure:start("storage", "2o4b4tHpoWifLU+BlyzsIG1VtlO9LgBRFyl1qLw/+w9/ZszSxKGIK8JYac/UEJp5r8HKgiOiG8YTqGS9otAYWA=="),
 {ok, Binary} = file:read("/path/to/some/small/file"),
 {ok, created} = erlazure:put_block_blob(Pid, "uploads", "test_upload.file", Binary).
 ```
-#Upload block blob with timeout set
+###Upload block blob with timeout set
 Uploads block blob and waits no longer than 15 seconds for erlazure to finish the upload
 ```
 {ok, Pid} = erlazure:start("storage", "2o4b4tHpoWifLU+BlyzsIG1VtlO9LgBRFyl1qLw/+w9/ZszSxKGIK8JYac/UEJp5r8HKgiOiG8YTqGS9otAYWA=="),
@@ -73,7 +73,7 @@ Uploads block blob and waits no longer than 15 seconds for erlazure to finish th
 {ok, created} = erlazure:put_block_blob(Pid, "uploads", "test_upload2.file", Binary, [], 15000).
 ```
 
-#Get 20 messages from a queue
+###Get 20 messages from a queue
 Retrieves max 20 messages from a queue
 ```
 {ok, Pid} = erlazure:start("storage", "2o4b4tHpoWifLU+BlyzsIG1VtlO9LgBRFyl1qLw/+w9/ZszSxKGIK8JYac/UEJp5r8HKgiOiG8YTqGS9otAYWA=="),
