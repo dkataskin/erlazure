@@ -76,7 +76,7 @@ Uploads block blob and waits no longer than 15 seconds for erlazure to finish th
 Retrieves max 20 messages from a queue
 ```
 {ok, Pid} = erlazure:start("storage", "2o4b4tHpoWifLU+BlyzsIG1VtlO9LgBRFyl1qLw/+w9/ZszSxKGIK8JYac/UEJp5r8HKgiOiG8YTqGS9otAYWA=="),
-{ok, Messages} = erlazure:get_messages(Pid, "test_queue", [{num_of_messages, 32}]).
+{ok, Messages} = erlazure:get_messages(Pid, "test_queue", [{num_of_messages, 20}]).
 ```
 
 ## License
