@@ -41,7 +41,7 @@ Erlazure requires OTP version R16+.
   
 ##Starting an instance of erlazure
 
-Start an instance of erlazure by calling erlazure:start/2 where **Account** is Storage account name and **Key** is Storage account key.
+Start an instance of erlazure by calling ```erlazure:start/2``` where **Account** is Storage account name and **Key** is Storage account key.
 ```erlang
 {ok, Pid} = erlazure:start(Account, Key)
 ```
