@@ -48,7 +48,7 @@ Start an instance of erlazure by calling erlazure:start/2 where **Account** is S
 Account and Key are strings.
 
 ##Calling Azure services
-Almost each azure services request has three corresponding functions in ```erlazure``` module, the first has minimal set of parameters and the second has additionaly list of ```Options``` and the third has additionaly ```Timeout``` parameter.
+Almost each azure services request has three corresponding functions in ```erlazure``` module, the first has minimal set of parameters, the second has additionaly list of ```Options``` and the third has additionaly ```Timeout``` parameter.
 
 ```Options``` as the name states is list of options supported by this azure services request, each options is tuple ```{OptionName, OptionValue}``` where ```OptionName``` is atom and ```OptionValue``` can be of any type, option is passed either as a header or as a query string parameter.
 
