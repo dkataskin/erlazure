@@ -1,4 +1,4 @@
-%% Copyright (c) 2013 - 2014, Dmitry Kataskin
+%% Copyright (c) 2013 - 2015, Dmitry Kataskin
 %% All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
 
 -define(DEBUG, true).
 
--include("erlazure.hrl").
+-include("../include/erlazure.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 %% API

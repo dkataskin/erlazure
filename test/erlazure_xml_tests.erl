@@ -1,4 +1,4 @@
-%% Copyright (c) 2013 - 2014, Dmitry Kataskin
+%% Copyright (c) 2013 - 2015, Dmitry Kataskin
 %% All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@
 
 -compile(export_all).
 
--include("erlazure.hrl").
+-include("../include/erlazure.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 parse_enumeration_test() ->
