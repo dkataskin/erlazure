@@ -43,34 +43,34 @@
 -export([start/2]).
 
 %% Queue API
--export([list_queues/1, list_queues/3]).
--export([set_queue_acl/3, set_queue_acl/5]).
--export([get_queue_acl/2, get_queue_acl/4]).
--export([create_queue/2, create_queue/4]).
--export([delete_queue/2, delete_queue/4]).
--export([put_message/3, put_message/5]).
--export([get_messages/2, get_messages/4]).
--export([peek_messages/2, peek_messages/4]).
--export([delete_message/4, delete_message/6]).
--export([clear_messages/2, clear_messages/4]).
--export([update_message/4, update_message/6]).
+-export([list_queues/1, list_queues/2, list_queues/3]).
+-export([set_queue_acl/3, set_queue_acl/4, set_queue_acl/5]).
+-export([get_queue_acl/2, get_queue_acl/3, get_queue_acl/4]).
+-export([create_queue/2, create_queue/3, create_queue/4]).
+-export([delete_queue/2, delete_queue/3, delete_queue/4]).
+-export([put_message/3, put_message/4, put_message/5]).
+-export([get_messages/2, get_messages/3, get_messages/4]).
+-export([peek_messages/2, peek_messages/3, peek_messages/4]).
+-export([delete_message/4, delete_message/5, delete_message/6]).
+-export([clear_messages/2, clear_messages/3, clear_messages/4]).
+-export([update_message/4, update_message/5, update_message/6]).
 
 %% Blob API
--export([list_containers/1, list_containers/3]).
--export([create_container/2, create_container/4]).
--export([delete_container/2, delete_container/4]).
--export([lease_container/3, lease_container/5]).
--export([list_blobs/2, list_blobs/4]).
--export([put_block_blob/4, put_block_blob/6]).
--export([put_page_blob/4, put_page_blob/6]).
--export([get_blob/3, get_blob/5]).
--export([snapshot_blob/3, snapshot_blob/5]).
--export([copy_blob/4, copy_blob/6]).
--export([delete_blob/3, delete_blob/5]).
--export([put_block/5, put_block/7]).
--export([put_block_list/4, put_block_list/6]).
--export([get_block_list/3, get_block_list/5]).
--export([acquire_blob_lease/4, acquire_blob_lease/6, acquire_blob_lease/7]).
+-export([list_containers/1, list_containers/2, list_containers/3]).
+-export([create_container/2, create_container/3, create_container/4]).
+-export([delete_container/2, delete_container/3, delete_container/4]).
+-export([lease_container/3, lease_container/4, lease_container/5]).
+-export([list_blobs/2, list_blobs/3, list_blobs/4]).
+-export([put_block_blob/4, put_block_blob/5, put_block_blob/6]).
+-export([put_page_blob/4, put_page_blob/5, put_page_blob/6]).
+-export([get_blob/3, get_blob/4, get_blob/5]).
+-export([snapshot_blob/3, snapshot_blob/4, snapshot_blob/5]).
+-export([copy_blob/4, copy_blob/5, copy_blob/6]).
+-export([delete_blob/3, delete_blob/4, delete_blob/5]).
+-export([put_block/5, put_block/6, put_block/7]).
+-export([put_block_list/4, put_block_list/5, put_block_list/6]).
+-export([get_block_list/3, get_block_list/4, get_block_list/5]).
+-export([acquire_blob_lease/4, acquire_blob_lease/5, acquire_blob_lease/7]).
 
 %% Table API
 -export([list_tables/1, list_tables/3, new_table/2, delete_table/2]).
@@ -94,7 +94,11 @@ start(Account, Key) ->
 
 -spec list_queues(pid()) -> enum_parse_result(queue()).
 list_queues(Pid) ->
-        list_queues(Pid, [], ?gen_server_call_default_timeout).
+        list_queues(Pid, []).
+
+-spec list_queues(pid(), common_opts()) -> enum_parse_result(queue()).
+list_queues(Pid, Options) ->
+        list_queues(Pid, Options, ?gen_server_call_default_timeout).
 
 -spec list_queues(pid(), common_opts(), pos_integer()) -> enum_parse_result(queue()).
 list_queues(Pid, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
@@ -103,7 +107,11 @@ list_queues(Pid, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
 -type queue_acl_opts() :: req_param_timeout() | req_param_clientrequestid().
 -spec set_queue_acl(pid(), string(), signed_id()) -> {ok, created}.
 set_queue_acl(Pid, Queue, SignedId=#signed_id{}) ->
-        set_queue_acl(Pid, Queue, SignedId, [], ?gen_server_call_default_timeout).
+        set_queue_acl(Pid, Queue, SignedId, []).
+
+-spec set_queue_acl(pid(), string(), signed_id(), list(queue_acl_opts())) -> {ok, created}.
+set_queue_acl(Pid, Queue, SignedId=#signed_id{}, Options) ->
+        set_queue_acl(Pid, Queue, SignedId, Options, ?gen_server_call_default_timeout).
 
 -spec set_queue_acl(pid(), string(), signed_id(), list(queue_acl_opts()), pos_integer()) -> {ok, created}.
 set_queue_acl(Pid, Queue, SignedId=#signed_id{}, Options, Timeout) when is_list(Options); is_integer(Timeout)->
@@ -111,7 +119,11 @@ set_queue_acl(Pid, Queue, SignedId=#signed_id{}, Options, Timeout) when is_list(
 
 -spec get_queue_acl(pid(), string()) -> {ok, no_acl} | {ok, signed_id()}.
 get_queue_acl(Pid, Queue) ->
-        get_queue_acl(Pid, Queue, [], ?gen_server_call_default_timeout).
+        get_queue_acl(Pid, Queue, []).
+
+-spec get_queue_acl(pid(), string(), list(queue_acl_opts())) -> {ok, no_acl} | {ok, signed_id()}.
+get_queue_acl(Pid, Queue, Options) ->
+        get_queue_acl(Pid, Queue, Options, ?gen_server_call_default_timeout).
 
 -spec get_queue_acl(pid(), string(), list(queue_acl_opts()), pos_integer()) -> {ok, no_acl} | {ok, signed_id()}.
 get_queue_acl(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
@@ -119,43 +131,58 @@ get_queue_acl(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Ti
 
 -spec create_queue(pid(), string()) -> created_response() | already_created_response().
 create_queue(Pid, Queue) ->
-        create_queue(Pid, Queue, [], ?gen_server_call_default_timeout).
-
+        create_queue(Pid, Queue, []).
+create_queue(Pid, Queue, Options) ->
+        create_queue(Pid, Queue, Options, ?gen_server_call_default_timeout).
 create_queue(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {create_queue, Queue, Options}, Timeout).
 
 delete_queue(Pid, Queue) ->
-        delete_queue(Pid, Queue, [], ?gen_server_call_default_timeout).
+        delete_queue(Pid, Queue, []).
+delete_queue(Pid, Queue, Options) ->
+        delete_queue(Pid, Queue, Options, ?gen_server_call_default_timeout).
 delete_queue(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {delete_queue, Queue, Options}, Timeout).
 
 put_message(Pid, Queue, Message) ->
-        put_message(Pid, Queue, Message, [], ?gen_server_call_default_timeout).
+        put_message(Pid, Queue, Message, []).
+put_message(Pid, Queue, Message, Options) ->
+        put_message(Pid, Queue, Message, Options, ?gen_server_call_default_timeout).
 put_message(Pid, Queue, Message, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {put_message, Queue, Message, Options}, Timeout).
 
 get_messages(Pid, Queue) ->
-        get_messages(Pid, Queue, [], ?gen_server_call_default_timeout).
+        get_messages(Pid, Queue, []).
+get_messages(Pid, Queue, Options) ->
+        get_messages(Pid, Queue, Options, ?gen_server_call_default_timeout).
 get_messages(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {get_messages, Queue, Options}, Timeout).
 
 peek_messages(Pid, Queue) ->
-        peek_messages(Pid, Queue, [], ?gen_server_call_default_timeout).
-peek_messages(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Timeout)->
+        peek_messages(Pid, Queue, []).
+peek_messages(Pid, Queue, Options) ->
+        peek_messages(Pid, Queue, Options, ?gen_server_call_default_timeout).
+peek_messages(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {peek_messages, Queue, Options}, Timeout).
 
 delete_message(Pid, Queue, MessageId, PopReceipt) ->
-        delete_message(Pid, Queue, MessageId, PopReceipt, [], ?gen_server_call_default_timeout).
+        delete_message(Pid, Queue, MessageId, PopReceipt, []).
+delete_message(Pid, Queue, MessageId, PopReceipt, Options)  ->
+        delete_message(Pid, Queue, MessageId, PopReceipt, Options, ?gen_server_call_default_timeout).
 delete_message(Pid, Queue, MessageId, PopReceipt, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {delete_message, Queue, MessageId, PopReceipt, Options}, Timeout).
 
 clear_messages(Pid, Queue) ->
-        clear_messages(Pid, Queue, [], ?gen_server_call_default_timeout).
+        clear_messages(Pid, Queue, []).
+clear_messages(Pid, Queue, Options) ->
+        clear_messages(Pid, Queue, Options, ?gen_server_call_default_timeout).
 clear_messages(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {clear_messages, Queue, Options}, Timeout).
 
 update_message(Pid, Queue, UpdatedMessage=#queue_message{}, VisibilityTimeout) ->
-        update_message(Pid, Queue, UpdatedMessage, VisibilityTimeout, [], ?gen_server_call_default_timeout).
+        update_message(Pid, Queue, UpdatedMessage, VisibilityTimeout, []).
+update_message(Pid, Queue, UpdatedMessage=#queue_message{}, VisibilityTimeout, Options) ->
+        update_message(Pid, Queue, UpdatedMessage, VisibilityTimeout, Options, ?gen_server_call_default_timeout).
 update_message(Pid, Queue, UpdatedMessage=#queue_message{}, VisibilityTimeout, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {update_message, Queue, UpdatedMessage, VisibilityTimeout, Options}, Timeout).
 
@@ -164,80 +191,107 @@ update_message(Pid, Queue, UpdatedMessage=#queue_message{}, VisibilityTimeout, O
 %%====================================================================
 
 list_containers(Pid) ->
-        list_containers(Pid, [], ?gen_server_call_default_timeout).
+        list_containers(Pid, []).
+list_containers(Pid, Options) ->
+        list_containers(Pid, Options, ?gen_server_call_default_timeout).
 list_containers(Pid, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {list_containers, Options}, Timeout).
 
 create_container(Pid, Name) ->
-        create_container(Pid, Name, [], ?gen_server_call_default_timeout).
+        create_container(Pid, Name, []).
+create_container(Pid, Name, Options) ->
+        create_container(Pid, Name, Options, ?gen_server_call_default_timeout).
 create_container(Pid, Name, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {create_container, Name, Options}, Timeout).
 
 delete_container(Pid, Name) ->
-        delete_container(Pid, Name, [], ?gen_server_call_default_timeout).
+        delete_container(Pid, Name, []).
+delete_container(Pid, Name, Options) ->
+        delete_container(Pid, Name, Options, ?gen_server_call_default_timeout).
 delete_container(Pid, Name, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {delete_container, Name, Options}, Timeout).
 
 put_block_blob(Pid, Container, Name, Data) ->
-        put_block_blob(Pid, Container, Name, Data, [], ?gen_server_call_default_timeout).
+        put_block_blob(Pid, Container, Name, Data, []).
+put_block_blob(Pid, Container, Name, Data, Options) ->
+        put_block_blob(Pid, Container, Name, Data, Options, ?gen_server_call_default_timeout).
 put_block_blob(Pid, Container, Name, Data, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {put_blob, Container, Name, block_blob, Data, Options}, Timeout).
 
 put_page_blob(Pid, Container, Name, ContentLength) ->
-        put_block_blob(Pid, Container, Name, ContentLength, [], ?gen_server_call_default_timeout).
+        put_page_blob(Pid, Container, Name, ContentLength, []).
+put_page_blob(Pid, Container, Name, ContentLength, Options) ->
+        put_page_blob(Pid, Container, Name, ContentLength, Options, ?gen_server_call_default_timeout).
 put_page_blob(Pid, Container, Name, ContentLength, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {put_blob, Container, Name, page_blob, ContentLength, Options}, Timeout).
 
 list_blobs(Pid, Container) ->
-        list_blobs(Pid, Container, [], ?gen_server_call_default_timeout).
+        list_blobs(Pid, Container, []).
+list_blobs(Pid, Container, Options) ->
+        list_blobs(Pid, Container, Options, ?gen_server_call_default_timeout).
 list_blobs(Pid, Container, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {list_blobs, Container, Options}, Timeout).
 
 get_blob(Pid, Container, Blob) ->
-        get_blob(Pid, Container, Blob, [], ?gen_server_call_default_timeout).
+        get_blob(Pid, Container, Blob, []).
+get_blob(Pid, Container, Blob, Options) ->
+        get_blob(Pid, Container, Blob, Options, ?gen_server_call_default_timeout).
 get_blob(Pid, Container, Blob, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {get_blob, Container, Blob, Options}, Timeout).
 
 snapshot_blob(Pid, Container, Blob) ->
-        snapshot_blob(Pid, Container, Blob, [], ?gen_server_call_default_timeout).
+        snapshot_blob(Pid, Container, Blob, []).
+snapshot_blob(Pid, Container, Blob, Options) ->
+        snapshot_blob(Pid, Container, Blob, Options, ?gen_server_call_default_timeout).
 snapshot_blob(Pid, Container, Blob, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {snapshot_blob, Container, Blob, Options}, Timeout).
 
 copy_blob(Pid, Container, Blob, Source) ->
-        copy_blob(Pid, Container, Blob, Source, [], ?gen_server_call_default_timeout).
+        copy_blob(Pid, Container, Blob, Source, []).
+copy_blob(Pid, Container, Blob, Source, Options) ->
+        copy_blob(Pid, Container, Blob, Source, Options, ?gen_server_call_default_timeout).
 copy_blob(Pid, Container, Blob, Source, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {copy_blob, Container, Blob, Source, Options}, Timeout).
 
 delete_blob(Pid, Container, Blob) ->
-        delete_blob(Pid, Container, Blob, [], ?gen_server_call_default_timeout).
+        delete_blob(Pid, Container, Blob, []).
+delete_blob(Pid, Container, Blob, Options) ->
+        delete_blob(Pid, Container, Blob, Options, ?gen_server_call_default_timeout).
 delete_blob(Pid, Container, Blob, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {delete_blob, Container, Blob, Options}, Timeout).
 
 put_block(Pid, Container, Blob, BlockId, BlockContent) ->
-        put_block(Pid, Container, Blob, BlockId, BlockContent, [], ?gen_server_call_default_timeout).
+        put_block(Pid, Container, Blob, BlockId, BlockContent, []).
+put_block(Pid, Container, Blob, BlockId, BlockContent, Options) ->
+        put_block(Pid, Container, Blob, BlockId, BlockContent, Options, ?gen_server_call_default_timeout).
 put_block(Pid, Container, Blob, BlockId, BlockContent, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {put_block, Container, Blob, BlockId, BlockContent, Options}, Timeout).
 
 put_block_list(Pid, Container, Blob, BlockRefs) ->
-        put_block_list(Pid, Container, Blob, BlockRefs, [], ?gen_server_call_default_timeout).
+        put_block_list(Pid, Container, Blob, BlockRefs, []).
+put_block_list(Pid, Container, Blob, BlockRefs, Options) ->
+        put_block_list(Pid, Container, Blob, BlockRefs, Options, ?gen_server_call_default_timeout).
 put_block_list(Pid, Container, Blob, BlockRefs, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {put_block_list, Container, Blob, BlockRefs, Options}, Timeout).
 
 get_block_list(Pid, Container, Blob) ->
-        get_block_list(Pid, Container, Blob, [], ?gen_server_call_default_timeout).
+        get_block_list(Pid, Container, Blob, []).
+get_block_list(Pid, Container, Blob, Options) ->
+        get_block_list(Pid, Container, Blob, Options, ?gen_server_call_default_timeout).
 get_block_list(Pid, Container, Blob, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {get_block_list, Container, Blob, Options}, Timeout).
 
 acquire_blob_lease(Pid, Container, Blob, Duration) ->
-        acquire_blob_lease(Pid, Container, Blob, "", Duration, [], ?gen_server_call_default_timeout).
-acquire_blob_lease(Pid, Container, Blob, Duration, Options, Timeout) ->
-        acquire_blob_lease(Pid, Container, Blob, "", Duration, Options, Timeout).
-
+        acquire_blob_lease(Pid, Container, Blob, Duration, []).
+acquire_blob_lease(Pid, Container, Blob, Duration, Options) ->
+        acquire_blob_lease(Pid, Container, Blob, "", Duration, Options, ?gen_server_call_default_timeout).
 acquire_blob_lease(Pid, Container, Blob, ProposedId, Duration, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {acquire_blob_lease, Container, Blob, ProposedId, Duration, Options}, Timeout).
 
-lease_container(Pid, Name, Mode) when is_atom(Mode) ->
-        lease_container(Pid, Name, Mode, [], ?gen_server_call_default_timeout).
+lease_container(Pid, Name, Mode) ->
+        lease_container(Pid, Name, Mode, []).
+lease_container(Pid, Name, Mode, Options) ->
+        lease_container(Pid, Name, Mode, Options, ?gen_server_call_default_timeout).
 lease_container(Pid, Name, Mode, Options, Timeout) when is_atom(Mode); is_list(Options); is_integer(Timeout) ->
         gen_server:call(Pid, {lease_container, Name, Mode, Options}, Timeout).
 
