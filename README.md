@@ -3,8 +3,9 @@
 Erlazure is a library for accessing Windows Azure Storage Services. The API is subject to change.
 
 Service APIs implemented:
-* Queue storage service (API ver. "2012-02-12")
-* Blob storage service (API ver. "2012-02-12")
+* Queue storage service (API ver. "2014-02-14")
+* Blob storage service (API ver. "2014-02-14")
+* Table storage service (API ver. "2014-02-14")
 
 ##Requirements
 
@@ -39,6 +40,11 @@ Erlazure requires OTP version R16+.
   * Get block list
   * Lease container
   
+* Table storage service
+  * List tables
+  * New table
+  * Delete table
+
 ##Starting an instance of erlazure
 
 Start an instance of erlazure by calling ```erlazure:start/2``` where **Account** is Storage account name and **Key** is Storage account key.
