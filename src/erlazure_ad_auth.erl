@@ -13,6 +13,8 @@
 -define(CLIENT_ID, "04b07795-8ddb-461a-bbee-02f9e1bf7b46").
 %% default resource
 -define(RESOURCE, "https://management.core.windows.net/").
+%% default authority
+-define(AUTHORITY, "login.microsoftonline.com").
 
 -export([
     oauth2_acquire_token_with_username_password/4
@@ -28,6 +30,7 @@
     string(), string(), string(), proplists:proplist()) ->
     {ok, ad_oauth2_token()} | {error, Reason :: term()}.
 oauth2_acquire_token_with_username_password(ADId, Username, Password, Options) ->
+    Authority = proplists:get_value(authority, Options, ?AUTHORITY),
     Params = [
         {"grant_type", "password"},
         {"client_id", proplists:get_value(client_id, Options, ?CLIENT_ID)},
@@ -35,7 +38,7 @@ oauth2_acquire_token_with_username_password(ADId, Username, Password, Options) -
         {"username", Username},
         {"password", Password}
     ],
-    Url = "https://login.windows.net/" ++ ADId ++ "/oauth2/token",
+    Url = "https://" ++ Authority ++ "/" ++ ADId ++ "/oauth2/token",
     ReqBody = urlencode(Params),
     Response = httpc:request(post,
         {Url, [], "application/x-www-form-urlencoded", ReqBody},
@@ -48,6 +51,10 @@ oauth2_acquire_token_with_username_password(ADId, Username, Password, Options) -
         {error, _} = Error ->
             Error
     end.
+
+%%==============================================================================
+%% Internal functions
+%%==============================================================================
 
 to_oauth2_token(Body) ->
     Json = jsx:decode(Body),
