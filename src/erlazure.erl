@@ -700,8 +700,7 @@ execute_request(ServiceContext = #service_context{}, ReqContext = #req_context{}
                                       ServiceContext#service_context.account)}],
 
         Headers1 = if (ReqContext#req_context.method =:= put orelse
-                       ReqContext#req_context.method =:= post) andalso
-                      (ReqContext#req_context.body =/= []) ->
+                       ReqContext#req_context.method =:= post) ->
                         ContentHeaders = [{"Content-Type", ReqContext#req_context.content_type},
                                           {"Content-Length", integer_to_list(ReqContext#req_context.content_length)}],
                         lists:append([Headers, ContentHeaders, ReqContext#req_context.headers]);
