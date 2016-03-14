@@ -520,7 +520,10 @@ handle_call({put_blob, Container, Name, Type = block_blob, Data, Options}, _From
                       {body, Data},
                       {params, [{blob_type, Type}] ++ Options}],
         ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
-        ReqContext1 = ReqContext#req_context{ content_type = "application/octet-stream" },
+        ReqContext1 = case proplists:get_value(content_type, Options) of
+                        nil          -> ReqContext#req_context{ content_type = "application/octet-stream" };
+                        ContentType  -> ReqContext#req_context{ content_type = ContentType }
+                      end,
 
         {?http_created, _Body} = execute_request(ServiceContext, ReqContext1),
         {reply, {ok, created}, State};
