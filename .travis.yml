@@ -1,4 +1,5 @@
 language: erlang
+script: ./rebar compile && ./rebar skip_deps=true eunit suites=erlazure_xml_tests,erlazure_utils_tests,erlazure_queue_tests,erlazure_blob_tests
 notifications:
   email: dmitriy.kataskin@gmail.com
 otp_release:
