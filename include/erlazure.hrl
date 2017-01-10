@@ -242,3 +242,18 @@
                        metadata = [] :: metadata() }).
 -type cloud_table() :: #cloud_table{}.
 -export_type([cloud_table/0]).
+
+%
+% Azure Active Driectory Authenticatin types
+%
+-record(ad_oauth2_token, {
+    token_type :: string(), %% "Bearer"
+    expires_in :: integer(), %% "3600"
+    scope :: string(),  %% "user_impersonation"
+    expires_on :: integer(), %% "1449737693"
+    not_before :: integer(),  %% "1449733793"
+    resource :: string(), %% "https://management.core.windows.net/"
+    access_token :: string(), %% some long string
+    refresh_token = undefined :: string() %% some long string
+}).
+-type ad_oauth2_token() :: #ad_oauth2_token{}.
