@@ -472,8 +472,8 @@ handle_call({create_container, Name, Options}, _From, State) ->
         ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
         {Code, Body} = execute_request(ServiceContext, ReqContext),
         case Code of
-          ?http_created -> {reply, {ok, created}, State},
-          _ -> {reply, {error, Body}, State},
+          ?http_created -> {reply, {ok, created}, State};
+          _ -> {reply, {error, Body}, State}
         end;
 
 % Delete container
