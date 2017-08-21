@@ -1,4 +1,4 @@
-##erlazure (v0.2) [![Build Status](https://travis-ci.org/dkataskin/erlazure.svg?branch=master)](https://travis-ci.org/dkataskin/erlazure)
+## erlazure (v0.2) [![Build Status](https://travis-ci.org/dkataskin/erlazure.svg?branch=master)](https://travis-ci.org/dkataskin/erlazure)
 
 Erlazure is a library for accessing Windows Azure Storage Services. The API is subject to change.
 
@@ -7,11 +7,11 @@ Service APIs implemented:
 * Blob storage service (API ver. "2014-02-14")
 * Table storage service (API ver. "2014-02-14")
 
-##Requirements
+## Requirements
 
 Erlazure requires OTP version R16+.
 
-##Implemented API functions
+## Implemented API functions
 * Queue storage service
   * List queues
   * Get queue acl
@@ -45,7 +45,7 @@ Erlazure requires OTP version R16+.
   * New table
   * Delete table
 
-##Starting an instance of erlazure
+## Starting an instance of erlazure
 
 Start an instance of erlazure by calling ```erlazure:start/2``` where **Account** is Storage account name and **Key** is Storage account key.
 ```erlang
@@ -53,7 +53,7 @@ Start an instance of erlazure by calling ```erlazure:start/2``` where **Account*
 ```
 Account and Key are strings.
 
-##Calling Azure services
+## Calling Azure services
 Almost each azure services request has three corresponding functions in ```erlazure``` module, the first has minimal set of parameters, the second has additionaly list of ```Options``` and the third has additionaly ```Timeout``` parameter.
 
 ```Options``` as the name states is list of options supported by this azure services request, each options is tuple ```{OptionName, OptionValue}``` where ```OptionName``` is atom and ```OptionValue``` can be of any type, option is passed either as a header or as a query string parameter.
@@ -62,15 +62,15 @@ Almost each azure services request has three corresponding functions in ```erlaz
 
 For a list of supported options for each azure service request please consult msdn documentation.
 
-##Examples
+## Examples
 
-###Upload block blob
+### Upload block blob
 ```
 {ok, Pid} = erlazure:start("storage", "2o4b4tHpoWifLU+BlyzsIG1VtlO9LgBRFyl1qLw/+w9/ZszSxKGIK8JYac/UEJp5r8HKgiOiG8YTqGS9otAYWA=="),
 {ok, Binary} = file:read("/path/to/some/small/file"),
 {ok, created} = erlazure:put_block_blob(Pid, "uploads", "test_upload.file", Binary).
 ```
-###Upload block blob with timeout set
+### Upload block blob with timeout set
 Uploads block blob and waits no longer than 15 seconds for erlazure to finish the upload
 ```
 {ok, Pid} = erlazure:start("storage", "2o4b4tHpoWifLU+BlyzsIG1VtlO9LgBRFyl1qLw/+w9/ZszSxKGIK8JYac/UEJp5r8HKgiOiG8YTqGS9otAYWA=="),
@@ -78,7 +78,7 @@ Uploads block blob and waits no longer than 15 seconds for erlazure to finish th
 {ok, created} = erlazure:put_block_blob(Pid, "uploads", "test_upload2.file", Binary, [], 15000).
 ```
 
-###Get 20 messages from a queue
+### Get 20 messages from a queue
 Retrieves max 20 messages from a queue
 ```
 {ok, Pid} = erlazure:start("storage", "2o4b4tHpoWifLU+BlyzsIG1VtlO9LgBRFyl1qLw/+w9/ZszSxKGIK8JYac/UEJp5r8HKgiOiG8YTqGS9otAYWA=="),
