@@ -730,26 +730,26 @@ execute_request(ServiceContext = #service_context{}, ReqContext = #req_context{}
                                  [{version, "HTTP/1.1"}, {ssl, [{versions, ['tlsv1.2']}]}],
                                  [{sync, true}, {body_format, binary}, {headers_as_is, true}]),
         case Response of
-          {ok, {{_, Code, _}, _, Body}}
-          when Code >= 200, Code =< 206 ->
-               {Code, Body};
+                {ok, {{_, Code, _}, _, Body}}
+                  when Code >= 200, Code =< 206 ->
+                       {Code, Body};
 
-          {ok, {{_, _, _}, _, Body}} ->
-            try get_error_code(Body) of
-              ErrorCodeAtom -> {ok, ErrorCodeAtom}
-            catch
-              _ -> {error, Body}
-            end
-        end.
+                  {ok, {{_, _, _}, _, Body}} ->
+                    try get_error_code(Body) of
+                      ErrorCodeAtom -> {ok, ErrorCodeAtom}
+                    catch
+                      _ -> {error, Body}
+                    end
+                end.
 
 get_error_code(Body) ->
-  {ParseResult, _} = xmerl_scan:string(binary_to_list(Body)),
-  ErrorContent = ParseResult#xmlElement.content,
-  ErrorContentHead = hd(ErrorContent),
-  CodeContent = ErrorContentHead#xmlElement.content,
-  CodeContentHead = hd(CodeContent),
-  ErrorCodeText = CodeContentHead#xmlText.value,
-  list_to_atom(ErrorCodeText).
+        {ParseResult, _} = xmerl_scan:string(binary_to_list(Body)),
+        ErrorContent = ParseResult#xmlElement.content,
+        ErrorContentHead = hd(ErrorContent),
+        CodeContent = ErrorContentHead#xmlElement.content,
+        CodeContentHead = hd(CodeContent),
+        ErrorCodeText = CodeContentHead#xmlText.value,
+        list_to_atom(ErrorCodeText).
 
 get_shared_key(Service, Account, Key, HttpMethod, Path, Parameters, Headers) ->
         SignatureString = get_signature_string(Service, HttpMethod, Headers, Account, Path, Parameters),
