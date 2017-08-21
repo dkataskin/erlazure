@@ -470,9 +470,11 @@ handle_call({create_container, Name, Options}, _From, State) ->
                       {path, Name},
                       {params, [{res_type, container}] ++ Options}],
         ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
-
-        {?http_created, _Body} = execute_request(ServiceContext, ReqContext),
-        {reply, {ok, created}, State};
+        {Code, Body} = execute_request(ServiceContext, ReqContext),
+        case Code of
+          ?http_created -> {reply, {ok, created}, State};
+          _ -> {reply, {error, Body}, State}
+        end;
 
 % Delete container
 handle_call({delete_container, Name, Options}, _From, State) ->
@@ -730,11 +732,24 @@ execute_request(ServiceContext = #service_context{}, ReqContext = #req_context{}
         case Response of
           {ok, {{_, Code, _}, _, Body}}
           when Code >= 200, Code =< 206 ->
-               {Code, Body};
+            {Code, Body};
 
           {ok, {{_, _, _}, _, Body}} ->
-               throw(Body)
-        end.
+            try get_error_code(Body) of
+              ErrorCodeAtom -> {ok, ErrorCodeAtom}
+              catch
+                _ -> {error, Body}
+              end
+           end.
+
+get_error_code(Body) ->
+        {ParseResult, _} = xmerl_scan:string(binary_to_list(Body)),
+        ErrorContent = ParseResult#xmlElement.content,
+        ErrorContentHead = hd(ErrorContent),
+        CodeContent = ErrorContentHead#xmlElement.content,
+        CodeContentHead = hd(CodeContent),
+        ErrorCodeText = CodeContentHead#xmlText.value,
+        list_to_atom(ErrorCodeText).
 
 get_shared_key(Service, Account, Key, HttpMethod, Path, Parameters, Headers) ->
         SignatureString = get_signature_string(Service, HttpMethod, Headers, Account, Path, Parameters),
