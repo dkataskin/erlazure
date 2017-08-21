@@ -736,7 +736,7 @@ execute_request(ServiceContext = #service_context{}, ReqContext = #req_context{}
 
           {ok, {{_, _, _}, _, Body}} ->
             try get_error_code(Body) of
-              ErrorCodeAtom -> {ok, ErrorCodeAtom}
+              ErrorCodeAtom -> {error, ErrorCodeAtom}
               catch
                 _ -> {error, Body}
               end
