@@ -344,8 +344,8 @@ handle_call({set_queue_acl, Queue, SignedId=#signed_id{}, Options}, _From, State
                       {params, [{comp, acl}] ++ Options}],
         ReqContext = new_req_context(?queue_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_no_content, _Body} = execute_request(ServiceContext, ReqContext),
-        {reply, {ok, created}, State};
+        {Code, Body} = execute_request(ServiceContext, ReqContext),
+        return_response(Code, Body, State, ?http_no_content, created);
 
 % Get queue acl
 handle_call({get_queue_acl, Queue, Options}, _From, State) ->
@@ -382,8 +382,8 @@ handle_call({delete_queue, Queue, Options}, _From, State) ->
                       {params, Options}],
         ReqContext = new_req_context(?queue_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_no_content, _Body} = execute_request(ServiceContext, ReqContext),
-        {reply, {ok, deleted}, State};
+        {Code, Body} = execute_request(ServiceContext, ReqContext),
+        return_response(Code, Body, State, ?http_no_content, deleted);
 
 % Add message to a queue
 handle_call({put_message, Queue, Message, Options}, _From, State) ->
@@ -394,8 +394,8 @@ handle_call({put_message, Queue, Message, Options}, _From, State) ->
                       {params, Options}],
         ReqContext = new_req_context(?queue_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_created, _Body} = execute_request(ServiceContext, ReqContext),
-        {reply, {ok, created}, State};
+        {Code, Body} = execute_request(ServiceContext, ReqContext),
+        return_response(Code, Body, State, ?http_created, created);
 
 % Get messages from the queue
 handle_call({get_messages, Queue, Options}, _From, State) ->
@@ -425,8 +425,8 @@ handle_call({delete_message, Queue, MessageId, PopReceipt, Options}, _From, Stat
                       {params, [{pop_receipt, PopReceipt}] ++ Options}],
         ReqContext = new_req_context(?queue_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_no_content, _Body} = execute_request(ServiceContext, ReqContext),
-        {reply, {ok, deleted}, State};
+        {Code, Body} = execute_request(ServiceContext, ReqContext),
+        return_response(Code, Body, State, ?http_no_content, deleted);
 
 % Delete all messages from the queue
 handle_call({clear_messages, Queue, Options}, _From, State) ->
@@ -436,8 +436,8 @@ handle_call({clear_messages, Queue, Options}, _From, State) ->
                       {params, Options}],
         ReqContext = new_req_context(?queue_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_no_content, _Body} = execute_request(ServiceContext, ReqContext),
-        {reply, {ok, deleted}, State};
+        {Code, Body} = execute_request(ServiceContext, ReqContext),
+        return_response(Code, Body, State, ?http_no_content, deleted);
 
 % Update a message in the queue
 handle_call({update_message, Queue, UpdatedMessage=#queue_message{}, VisibilityTimeout, Options}, _From, State) ->
@@ -450,8 +450,8 @@ handle_call({update_message, Queue, UpdatedMessage=#queue_message{}, VisibilityT
                       {params, Params ++ Options}],
         ReqContext = new_req_context(?queue_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_no_content, _Body} = execute_request(ServiceContext, ReqContext),
-        {reply, {ok, updated}, State};
+        {Code, Body} = execute_request(ServiceContext, ReqContext),
+        return_response(Code, Body, State, ?http_no_content, updated);
 
 % List containers
 handle_call({list_containers, Options}, _From, State) ->
@@ -484,8 +484,8 @@ handle_call({delete_container, Name, Options}, _From, State) ->
                       {params, [{res_type, container}] ++ Options}],
         RequestContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_accepted, _Body} = execute_request(ServiceContext, RequestContext),
-        {reply, {ok, deleted}, State};
+        {Code, Body} = execute_request(ServiceContext, RequestContext),
+        return_response(Code, Body, State, ?http_accepted, deleted);
 
 % Lease a container
 handle_call({lease_container, Name, Mode, Options}, _From, State) ->
@@ -498,8 +498,8 @@ handle_call({lease_container, Name, Mode, Options}, _From, State) ->
                       {params, Params ++ Options}],
         ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_accepted, _Body} = execute_request(ServiceContext, ReqContext),
-        {reply, {ok, deleted}, State};
+        {Code, Body} = execute_request(ServiceContext, ReqContext),
+        return_response(Code, Body, State, ?http_accepted, deleted);
 
 % List blobs
 handle_call({list_blobs, Name, Options}, _From, State) ->
@@ -527,8 +527,8 @@ handle_call({put_blob, Container, Name, Type = block_blob, Data, Options}, _From
                         ContentType  -> ReqContext#req_context{ content_type = ContentType }
                       end,
 
-        {?http_created, _Body} = execute_request(ServiceContext, ReqContext1),
-        {reply, {ok, created}, State};
+        {Code, Body} = execute_request(ServiceContext, ReqContext1),
+        return_response(Code, Body, State, ?http_created, created);
 
 % Put page blob
 handle_call({put_blob, Container, Name, Type = page_blob, ContentLength, Options}, _From, State) ->
@@ -540,8 +540,8 @@ handle_call({put_blob, Container, Name, Type = page_blob, ContentLength, Options
                       {params, Params ++ Options}],
         ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_created, _Body} = execute_request(ServiceContext, ReqContext),
-        {reply, {ok, created}, State};
+        {Code, Body} = execute_request(ServiceContext, ReqContext),
+        return_response(Code, Body, State, ?http_created, created);
 
 % Get blob
 handle_call({get_blob, Container, Blob, Options}, _From, State) ->
@@ -566,8 +566,8 @@ handle_call({snapshot_blob, Container, Blob, Options}, _From, State) ->
                       {params, [{comp, snapshot}] ++ Options}],
         ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_created, _Body} = execute_request(ServiceContext, ReqContext),
-        {reply, {ok, created}, State};
+        {Code, Body} = execute_request(ServiceContext, ReqContext),
+        return_response(Code, Body, State, ?http_created, created);
 
 % Copy blob
 handle_call({copy_blob, Container, Blob, Source, Options}, _From, State) ->
@@ -577,8 +577,8 @@ handle_call({copy_blob, Container, Blob, Source, Options}, _From, State) ->
                       {params, [{blob_copy_source, Source}] ++ Options}],
         ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_accepted, _Body} = execute_request(ServiceContext, ReqContext),
-        {reply, {ok, created}, State};
+        {Code, Body} = execute_request(ServiceContext, ReqContext),
+        return_response(Code, Body, State, ?http_accepted, created);
 
 % Delete blob
 handle_call({delete_blob, Container, Blob, Options}, _From, State) ->
@@ -588,8 +588,8 @@ handle_call({delete_blob, Container, Blob, Options}, _From, State) ->
                       {params, Options}],
         ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_accepted, _Body} = execute_request(ServiceContext, ReqContext),
-        {reply, {ok, deleted}, State};
+        {Code, Body} = execute_request(ServiceContext, ReqContext),
+        return_response(Code, Body, State, ?http_accepted, deleted);
 
 % Put block
 handle_call({put_block, Container, Blob, BlockId, Content, Options}, _From, State) ->
@@ -602,8 +602,8 @@ handle_call({put_block, Container, Blob, BlockId, Content, Options}, _From, Stat
                       {params, Params ++ Options}],
         ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_created, _Body} = execute_request(ServiceContext, ReqContext),
-        {reply, {ok, created}, State};
+        {Code, Body} = execute_request(ServiceContext, ReqContext),
+        return_response(Code, Body, State, ?http_created, created);
 
 % Put block list
 handle_call({put_block_list, Container, Blob, BlockRefs, Options}, _From, State) ->
@@ -614,8 +614,8 @@ handle_call({put_block_list, Container, Blob, BlockRefs, Options}, _From, State)
                       {params, [{comp, "blocklist"}] ++ Options}],
         ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_created, _Body} = execute_request(ServiceContext, ReqContext),
-        {reply, {ok, created}, State};
+        {Code, Body} = execute_request(ServiceContext, ReqContext),
+        return_response(Code, Body, State, ?http_created, created);
 
 % Get block list
 handle_call({get_block_list, Container, Blob, Options}, _From, State) ->
@@ -642,8 +642,8 @@ handle_call({acquire_blob_lease, Container, Blob, ProposedId, Duration, Options}
                       {params, Params ++ Options}],
         ReqContext = new_req_context(?blob_service, State#state.account, State#state.param_specs, ReqOptions),
 
-        {?http_created, _Body} = execute_request(ServiceContext, ReqContext),
-        {reply, {ok, acquired}, State};
+        {Code, Body} = execute_request(ServiceContext, ReqContext),
+        return_response(Code, Body, State, ?http_created, acquired);
 
 % List tables
 handle_call({list_tables, Options}, _From, State) ->
@@ -663,8 +663,8 @@ handle_call({new_table, TableName}, _From, State) ->
                       {body, jsx:encode([{<<"TableName">>, TableName}])}],
         ReqContext = new_req_context(?table_service, State#state.account, State#state.param_specs, ReqOptions),
         ReqContext1 = ReqContext#req_context{ content_type = ?json_content_type },
-        {?http_created, _} = execute_request(ServiceContext, ReqContext1),
-        {reply, {ok, created}, State};
+        {Code, Body} = execute_request(ServiceContext, ReqContext1),
+        return_response(Code, Body, State, ?http_created, created);
 
 % Delete table
 handle_call({delete_table, TableName}, _From, State) ->
@@ -925,3 +925,11 @@ get_req_common_param_specs() ->
          #param_spec{ id = ?req_param_prefix, type = uri, name = "prefix" },
          #param_spec{ id = ?req_param_include, type = uri, name = "include" },
          #param_spec{ id = ?req_param_marker, type = uri, name = "marker" }].
+
+return_response(Code, Body, State, ExpectedResponseCode, SuccessAtom) ->
+  case Code of
+    ExpectedResponseCode ->
+      {reply, {ok, SuccessAtom}, State};
+    _ ->
+      {reply, {error, Body}, State}
+  end.
