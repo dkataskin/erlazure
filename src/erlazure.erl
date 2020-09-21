@@ -555,7 +555,8 @@ handle_call({get_blob, Container, Blob, Options}, _From, State) ->
           ?http_ok ->
             {reply, {ok, Body}, State};
           ?http_partial_content->
-            {reply, {ok, Body}, State}
+            {reply, {ok, Body}, State};
+          _ -> {reply, {error, Body}, State}            
         end;
 
 % Snapshot blob
