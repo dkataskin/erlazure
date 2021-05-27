@@ -556,7 +556,7 @@ handle_call({get_blob, Container, Blob, Options}, _From, State) ->
             {reply, {ok, Body}, State};
           ?http_partial_content->
             {reply, {ok, Body}, State};
-          _ -> {reply, {error, Body}, State}            
+          _ -> {reply, {error, Body}, State}
         end;
 
 % Snapshot blob
@@ -776,8 +776,18 @@ get_headers_string(Service, Headers) ->
         lists:foldl(FoldFun, "", get_header_names(Service)).
 
 -spec sign_string(base64:ascii_string(), string()) -> binary().
+-ifdef(OTP_RELEASE).
+-if(OTP_RELEASE >= 23).
 sign_string(Key, StringToSign) ->
-        crypto:mac(hmac, sha256, base64:decode(Key), StringToSign).
+  crypto:mac(hmac, sha256, base64:decode(Key), StringToSign).
+-else.
+sign_string(Key, StringToSign) ->
+  crypto:hmac(sha256, base64:decode(Key), StringToSign).
+-endif.
+-else.
+sign_string(Key, StringToSign) ->
+  crypto:hmac(sha256, base64:decode(Key), StringToSign).
+-endif.
 
 build_uri_base(Service, Account) ->
         lists:concat(["https://", get_host(Service, Account), "/"]).
