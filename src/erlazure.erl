@@ -777,7 +777,7 @@ get_headers_string(Service, Headers) ->
 
 -spec sign_string(base64:ascii_string(), string()) -> binary().
 sign_string(Key, StringToSign) ->
-        crypto:hash(sha256, [base64:decode(Key), StringToSign]).
+        crypto:mac(hmac, sha256, base64:decode(Key), StringToSign).
 
 build_uri_base(Service, Account) ->
         lists:concat(["https://", get_host(Service, Account), "/"]).
