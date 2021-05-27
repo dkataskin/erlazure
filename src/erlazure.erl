@@ -789,7 +789,6 @@ get_headers_string(Service, Headers) ->
     crypto:hmac(sha256, base64:decode(Key), StringToSign).
 -endif.
 
-
 build_uri_base(Service, Account) ->
         lists:concat(["https://", get_host(Service, Account), "/"]).
 
