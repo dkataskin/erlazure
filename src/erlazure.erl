@@ -775,9 +775,24 @@ get_headers_string(Service, Headers) ->
                   end,
         lists:foldl(FoldFun, "", get_header_names(Service)).
 
+-ifdef(OTP_RELEASE).
+        %% OTP 23 or higher
+        -if(?OTP_RELEASE >= 23).
+                hmac(Key, Str) ->
+                        crypto:mac(hmac, sha256, Key, Str).
+        -else.
+                hmac(Key, Str) ->
+                        crypto:hmac(sha256, Key, Str).
+        -endif.
+-else.
+        %% OTP 20 or lower.
+        hmac(Key, Str) ->
+                crypto:hmac(sha256, Key, Str).
+-endif
+
 -spec sign_string(base64:ascii_string(), string()) -> binary().
 sign_string(Key, StringToSign) ->
-        crypto:hmac(sha256, base64:decode(Key), StringToSign).
+        hmac(base64:decode(Key), StringToSign).
 
 build_uri_base(Service, Account) ->
         lists:concat(["https://", get_host(Service, Account), "/"]).
