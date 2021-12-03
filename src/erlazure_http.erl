@@ -66,7 +66,7 @@ construct_url(ReqContext = #req_context{}) ->
         lists:foldl(FoldFun, "", ReqContext#req_context.parameters).
 
 get_content_length(Content) when is_list(Content) ->
-        lists:flatlength(Content);
+        erlang:iolist_size(Content);
 
 get_content_length(Content) when is_binary(Content) ->
         byte_size(Content).
