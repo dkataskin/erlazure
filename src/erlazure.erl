@@ -75,6 +75,9 @@
 %% Table API
 -export([list_tables/1, list_tables/3, new_table/2, delete_table/2]).
 
+%% Host API
+-export([get_host/3]).
+
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
@@ -667,6 +670,12 @@ handle_call({new_table, TableName}, _From, State) ->
         {Code, Body} = execute_request(ServiceContext, ReqContext1),
         return_response(Code, Body, State, ?http_created, created);
 
+% Get host
+handle_call({get_host, Service, Domain}, _From, State) -> 
+        Account = State#state.account,
+        Host    = lists:concat([Account, ".", erlang:atom_to_list(Service), Domain]),
+        {reply, Host, State};
+
 % Delete table
 handle_call({delete_table, TableName}, _From, State) ->
         ServiceContext = new_service_context(?table_service, State),
@@ -799,6 +808,10 @@ build_uri_base(Service, Account) ->
 
 get_host(Service, Account) ->
         lists:concat([Account, ".", erlang:atom_to_list(Service), ".core.windows.net"]).
+get_host(Pid, Service, []) ->
+        gen_server:call(Pid, {get_host, Service, ".core.windows.net"});
+get_host(Pid, Service, Domain) ->
+        gen_server:call(Pid, {get_host, Service, Domain}).
 
 -spec canonicalize_headers([string()]) -> string().
 canonicalize_headers(Headers) ->
