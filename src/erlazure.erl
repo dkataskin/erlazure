@@ -76,7 +76,7 @@
 -export([list_tables/1, list_tables/3, new_table/2, delete_table/2]).
 
 %% Host API
--export([get_host/3]).
+-export([get_host/3, get_host/4]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -809,9 +809,17 @@ build_uri_base(Service, Account) ->
 get_host(Service, Account) ->
         lists:concat([Account, ".", erlang:atom_to_list(Service), ".core.windows.net"]).
 get_host(Pid, Service, []) ->
-        gen_server:call(Pid, {get_host, Service, ".core.windows.net"});
-get_host(Pid, Service, Domain) ->
-        gen_server:call(Pid, {get_host, Service, Domain}).
+        Domain  = ".core.windows.net",
+        Timeout = ?gen_server_call_default_timeout,
+        get_host(Pid, Service, Domain, Timeout);
+get_host(Pid, Service, Timeout) when is_integer(Timeout) ->
+        Domain  = ".core.windows.net",
+        get_host(Pid, Service, Domain, Timeout);
+get_host(Pid, Service, Domain) when is_list(Domain) ->
+        Timeout = ?gen_server_call_default_timeout,
+        get_host(Pid, Service, Domain, Timeout).
+get_host(Pid, Service, Domain, Timeout) when is_list(Domain), is_integer(Timeout) ->
+        gen_server:call(Pid, {get_host, Service, Domain}, Timeout).
 
 -spec canonicalize_headers([string()]) -> string().
 canonicalize_headers(Headers) ->
